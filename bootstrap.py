@@ -1,16 +1,20 @@
 import sys
-from pyparsing import Token, Literal, alphas, Word, Optional, LineStart, LineEnd, SkipTo
+from pyparsing import Token, Literal, Or, Word, Optional, LineStart, LineEnd, SkipTo, StringEnd, ZeroOrMore, NotAny, OneOrMore, Regex, MatchFirst, alphas, StringStart, Group, Suppress, ParserElement
 
-propertyName = Word("abcdefghijklmnopqrstuvwxyz./0123456789") 
-name = propertyName
-attrList = propertyName + Literal("=").suppress() + propertyName
-codeChunkDef = LineStart() + Literal("<<").suppress() + name.setResultsName("name") \
-    + Optional(attrList).setResultsName("options") + Literal(">>=").suppress() \
-    + LineEnd() + SkipTo(LineStart() + "@" + LineEnd())
+ParserElement.setDefaultWhitespaceChars('\t')
 
-chunk = codeChunkDef
+textLine = LineStart() + Or(NotAny("@"), "@@") + SkipTo(LineEnd()) + LineEnd()
+codeRef = LineStart() + ZeroOrMore(" ") + Literal("@<") + SkipTo(">") + LineEnd()
+docLine = textLine
+codeLine = textLine | codeRef
+chunkDef = LineStart() + Literal("@code") + OneOrMore(" ").suppress() + \
+           OneOrMore(alphas + " ").setResultsName('chunkName') + \
+           LineEnd() + \
+           Group(ZeroOrMore(codeLine)).setResultsName('chunkLines') + \
+           LineStart() + Suppress("@=") + LineEnd() + \
+           LineEnd()
+instruction = chunkDef 
+chunk = Group(ZeroOrMore(instruction | docLine)).setResultsName('lines')
 
 if __name__ == '__main__':
-    with open(sys.argv[1]) as f:
-        currentInput = f.read()
-        print chunk.parseString(currentInput)
+    print chunk.parseFile(sys.argv[1], parseAll=True)
