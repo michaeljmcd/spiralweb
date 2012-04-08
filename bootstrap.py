@@ -66,7 +66,7 @@ def p_web(p):
     '''web : webtl web
            | empty'''
     if len(p) == 3:
-        p[0] = [p[1]] + [p[2]]
+        p[0] = [p[1]] + p[2]
     else:
         p[0] = []
 
