@@ -40,6 +40,10 @@ def t_NEWLINE(t):
     t.lexer.lineno += len(t.value)
     return t
 
+def t_error(t):
+    print "Illegal character '%s'" % t.value[0]
+    t.lexer.skip(1)
+
 # Parser definitions
 
 class SpiralWebChunk():
@@ -51,24 +55,28 @@ class SpiralWebChunk():
 
     def getChunk(self, name):
         for chunk in self.lines:
-            if chunk.name == name:
-                return chunk
-            elif chunk.getChunk(name) != None:
-                return chunk.getChunk(name)
+            if not isinstance(chunk, basestring):
+                if chunk.name == name:
+                    return chunk
+                elif chunk.getChunk(name) != None:
+                    return chunk.getChunk(name)
         return None
 
     def setParent(self, parent):
         self.parent = parent
 
-        if self.lines is list:
-            for line in self.lines:
-                line.parent = parent
+        for line in self.lines:
+            if not isinstance(line, basestring):
+                line.setParent(parent)
 
     def dumpLines(self, indentLevel=''):
         output = ''
 
         for line in self.lines:
-            output += indentLevel + line
+            if isinstance(line, basestring):
+                output += indentLevel + line
+            else:
+                output += line.dumpLines(indentLevel)
 
         return output
 
@@ -95,6 +103,7 @@ class SpiralWebRef():
     name = ''
     indentLevel = 0
     parent = None
+    type = 'ref'
 
     def __init__(self, name, indentLevel=''):
         self.name = name
@@ -112,6 +121,9 @@ class SpiralWebRef():
     def setParent(self, parent):
         self.parent = parent
 
+    def dumpLines(self, indentLevel=''):
+        return self.parent.getChunk(self.name).dumpLines(indentLevel=indentLevel+self.indentLevel)
+
 class SpiralWeb():
     chunks = []
 
@@ -125,8 +137,6 @@ class SpiralWeb():
         for chunk in self.chunks:
             if chunk.name == name:
                 return chunk
-            elif chunk.getChunk(name) != None:
-                return chunk.getChunk(name)
 
         return None
 
@@ -191,7 +201,7 @@ def p_doclines(p):
     doc.type = 'doc'
     doc.name = ''
     doc.options = {}
-    doc.lines = p[1]
+    doc.lines = [p[1]]
     p[0] = doc
 
 def p_docdefn(p):
@@ -200,7 +210,7 @@ def p_docdefn(p):
     doc.type = 'doc'
     doc.name = p[2].strip()
     doc.options = p[3]
-    doc.lines = p[5]
+    doc.lines = [p[5]]
     p[0] = doc
 
 def p_codedefn(p):
@@ -217,7 +227,7 @@ def p_codelines(p):
     '''codelines : codeline codelines
                  | empty'''
     if len(p) == 3:
-       p[0] = [p[1]] + [p[2]]
+       p[0] = [p[1]] + p[2]
     else:
        p[0] = []
 
@@ -275,5 +285,6 @@ if __name__ == '__main__':
     with open(sys.argv[1]) as fileHandle:
         fileInput = fileHandle.read() 
 
-    web = SpiralWeb(parser.parse(fileInput))
-    print web.tangle([sys.argv[2]])
+    parsed = parser.parse(fileInput)
+    web = SpiralWeb(parsed)
+    web.tangle([sys.argv[2]])
