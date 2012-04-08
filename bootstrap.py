@@ -1,46 +1,40 @@
 import sys
-import codecs
+import ply.lex as lex
 
-class SpiralWeb():
-    chunks = []
+tokens = ('DOC_DIRECTIVE', 
+          'OPEN_PROPERTY_LIST',
+          'CLOSE_PROPERTY_LIST',
+          'EQUALS',
+          'COMMA',
+          'CHUNK_REFERENCE',
+          'CODE_DIRECTIVE',
+          'CODE_END_DIRECTIVE',
+          'AT_DIRECTIVE',
+          'TEXT')
 
-class SpiralWebChunk():
-    properties = { }
+t_AT_DIRECTIVE = r'@@'
+t_TEXT = '[^@\[\]=,]+'
+t_COMMA = r','
+t_DOC_DIRECTIVE = r'@doc'
+t_CODE_DIRECTIVE = r'@code'
+t_CODE_END_DIRECTIVE = r'@='
+t_CHUNK_REFERENCE = r'[ \t]*@<[^\]]+>[ \t]*'
+t_OPEN_PROPERTY_LIST = r'\['
+t_CLOSE_PROPERTY_LIST = r']'
+t_EQUALS = r'='
 
-class SpiralWebDocChunk(SpiralWebChunk):
-    lines = []
-
-class SpiralWebCodeChunk(SpiralWebChunk):
-    lines = []
-
-class SpiralWebChunkReference(SpiralWebChunk):
-    chunkName = ''
-
-class SpiralWebParser():
-    _indent = []
-    _inputFile = None
-    _buffer = None
-    lineNumber = 1
-
-    def parseFile(self, path):
-        _inputFile = codecs.open(path, encoding='utf-8')
-
-        for line in inputFile:
-            if line[0] == '@' and line[1] != '@':
-                self._parseDirective()
-            else:
-                self._parseText()
-
-    def _advanceOneLine(self):
-        self._buffer = self._inputFile.readline()
-        self._indent = []
-        self.lineNumber = self.lineNumber + 1
-
-    def _parseDirective():
-
-    def _parseText():
-        print 'text'
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
 
 if __name__ == '__main__':
-    parser = SpiralWebParser()
-    print parser.parseFile(sys.argv[1])
+    lexer = lex.lex()
+    fileInput = ''
+
+    with open(sys.argv[1]) as fileHandle:
+        fileInput = fileHandle.read() 
+
+    lexer.input(fileInput)
+
+    for tok in lexer:
+        print tok
