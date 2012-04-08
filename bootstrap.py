@@ -65,7 +65,7 @@ starting = 'web'
 def p_web(p):
     '''web : webtl web
            | empty'''
-    if len(p) == 2:
+    if len(p) == 3:
         p[0] = [p[1]] + [p[2]]
     else:
         p[0] = []
@@ -110,7 +110,7 @@ def p_codedefn(p):
 def p_codelines(p):
     '''codelines : codeline codelines
                  | empty'''
-    if len(p) == 2:
+    if len(p) == 3:
        p[0] = [p[1]] + [p[2]]
     else:
        p[0] = []
