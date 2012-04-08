@@ -1,3 +1,8 @@
+@doc SpiralWeb [out=spiralweb.md]
+SpiralWeb--A Literate Programming System
+========================================
+
+@code Lexer/Parser [out=parser.py]
 import sys
 import ply.lex as lex
 import ply.yacc as yacc
@@ -16,20 +21,20 @@ tokens = ('DOC_DIRECTIVE',
           'AT_DIRECTIVE',
           'TEXT')
 
-t_AT_DIRECTIVE = r'@@'
-t_TEXT = '[^@\[\]=,\n]+'
+t_AT_DIRECTIVE = r'@@@@'
+t_TEXT = '[^@@\[\]=,\n]+'
 t_COMMA = r','
-t_DOC_DIRECTIVE = r'@doc'
-t_CODE_DIRECTIVE = r'@code'
-t_CODE_END_DIRECTIVE = r'@='
+t_DOC_DIRECTIVE = r'@@doc'
+t_CODE_DIRECTIVE = r'@@code'
+t_CODE_END_DIRECTIVE = r'@@='
 t_OPEN_PROPERTY_LIST = r'\['
 t_CLOSE_PROPERTY_LIST = r']'
 t_EQUALS = r'='
 
 def t_CHUNK_REFERENCE(t):
-    r'[ \t]*@<[^\]]+>[ \t]*'
+    r'[ \t]*@@<[^\]]+>[ \t]*'
     inputString = t.value.rstrip()
-    refStart = inputString.find('@<')
+    refStart = inputString.find('@@<')
 
     t.value = {'indent' : inputString[0:refStart],
                'ref' : inputString[refStart+2:len(inputString)-1]}
@@ -287,10 +292,5 @@ if __name__ == '__main__':
 
     parsed = parser.parse(fileInput)
     web = SpiralWeb(parsed)
-
-    chunks = []
-
-    if len(sys.argv) > 1:
-        chunks.append(sys.argv[2])
-
-    web.tangle(chunks)
+    web.tangle([sys.argv[2]])
+@=
