@@ -63,10 +63,18 @@ class SpiralWebRef():
 starting = 'web'
 
 def p_web(p):
-    '''web : codedefn
-           | docdefn
-           | doclines'''
-    return p[0]
+    '''web : webtl web
+           | empty'''
+    if len(p) == 2:
+        p[0] = [p[1]] + [p[2]]
+    else:
+        p[0] = []
+
+def p_webtl(p):
+    '''webtl : codedefn
+             | docdefn
+             | doclines'''
+    p[0] = p[1]
 
 def p_empty(p):
     'empty :'
@@ -80,75 +88,83 @@ def p_doclines(p):
                 | OPEN_PROPERTY_LIST
                 | CLOSE_PROPERTY_LIST
                 | EQUALS'''
-    return p[0]
+    p[0] = p[1]
 
 def p_docdefn(p):
     '''docdefn : DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines'''
     code = SpiralWebDoc()
-    code.name = p[1]
-    code.options = p[2]
-    code.lines = p[4]
-    return code
+    code.name = p[2]
+    code.options = p[3]
+    code.lines = p[5]
+    p[0] = code
 
 def p_codedefn(p):
     '''codedefn : CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
                 '''
     code = SpiralWebCode()
-    code.name = p[1]
-    code.options = p[2]
-    code.lines = p[4]
-    return code
+    code.name = p[2]
+    code.options = p[3]
+    code.lines = p[5]
+    p[0] = code
 
 def p_codelines(p):
-    '''codelines : TEXT 
-                 | NEWLINE
-                 | AT_DIRECTIVE
-                 | OPEN_PROPERTY_LIST
-                 | CLOSE_PROPERTY_LIST
-                 | COMMA
-                 | EQUALS
-                 | chunkref'''
-    return p[0]
+    '''codelines : codeline codelines
+                 | empty'''
+    if len(p) == 2:
+       p[0] = [p[1]] + [p[2]]
+    else:
+       p[0] = []
+
+def p_codeline(p):
+    '''codeline : TEXT 
+                | NEWLINE
+                | AT_DIRECTIVE
+                | OPEN_PROPERTY_LIST
+                | CLOSE_PROPERTY_LIST
+                | COMMA
+                | EQUALS
+                | chunkref'''
+    p[0] = p[1]
 
 def p_chunkref(p):
     '''chunkref : CHUNK_REFERENCE'''
-    return SpiralWebRef(p[0]['ref'], p[0]['ref'])
+    p[0] = SpiralWebRef(p[1]['ref'], p[1]['indent'])
 
 def p_optionalpropertylist(p):
     '''optionalpropertylist : propertylist 
                             | empty'''
-    return p[0]
+    p[0] = p[1]
 
 def p_propertylist(p):
     '''propertylist : OPEN_PROPERTY_LIST propertysequence CLOSE_PROPERTY_LIST'''
-    return p[1]
+    p[0] = p[1]
 
 def p_propertysequence(p):
     '''propertysequence : empty 
                         | propertysequence1'''
-    return p[0]
+    p[0] = p[1]
 
 def p_propertysequence1(p):
     '''propertysequence1 : property 
                          | propertysequence1 COMMA property'''
-    if len(p) == 1:
-       return p[0]
+    if len(p) == 2:
+       p[0] = p[1]
     else:
-       return [p[0], p[1]]
+       p[0] = [p[1], p[3]]
 
 def p_property(p):
     '''property : TEXT EQUALS TEXT'''
-    return (p[0], p[1])
+    p[0] = (p[1], p[2])
 
 if __name__ == '__main__':
     lexer = lex.lex()
-    yacc = yacc.yacc()
+    parser = yacc.yacc()
     fileInput = ''
 
     with open(sys.argv[1]) as fileHandle:
         fileInput = fileHandle.read() 
 
-    print yacc.parse(fileInput)
+    print parser.parse(fileInput)
     #lexer.input(fileInput)
 
     #for tok in lexer:
