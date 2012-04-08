@@ -1,20 +1,46 @@
 import sys
-from pyparsing import Token, Literal, Or, Word, Optional, LineStart, LineEnd, SkipTo, StringEnd, ZeroOrMore, NotAny, OneOrMore, Regex, MatchFirst, alphas, StringStart, Group, Suppress, ParserElement
+import codecs
 
-ParserElement.setDefaultWhitespaceChars('\t')
+class SpiralWeb():
+    chunks = []
 
-textLine = LineStart() + Or(NotAny("@"), "@@") + SkipTo(LineEnd()) + LineEnd()
-codeRef = LineStart() + ZeroOrMore(" ") + Literal("@<") + SkipTo(">") + LineEnd()
-docLine = textLine
-codeLine = textLine | codeRef
-chunkDef = LineStart() + Literal("@code") + OneOrMore(" ").suppress() + \
-           OneOrMore(alphas + " ").setResultsName('chunkName') + \
-           LineEnd() + \
-           Group(ZeroOrMore(codeLine)).setResultsName('chunkLines') + \
-           LineStart() + Suppress("@=") + LineEnd() + \
-           LineEnd()
-instruction = chunkDef 
-chunk = Group(ZeroOrMore(instruction | docLine)).setResultsName('lines')
+class SpiralWebChunk():
+    properties = { }
+
+class SpiralWebDocChunk(SpiralWebChunk):
+    lines = []
+
+class SpiralWebCodeChunk(SpiralWebChunk):
+    lines = []
+
+class SpiralWebChunkReference(SpiralWebChunk):
+    chunkName = ''
+
+class SpiralWebParser():
+    _indent = []
+    _inputFile = None
+    _buffer = None
+    lineNumber = 1
+
+    def parseFile(self, path):
+        _inputFile = codecs.open(path, encoding='utf-8')
+
+        for line in inputFile:
+            if line[0] == '@' and line[1] != '@':
+                self._parseDirective()
+            else:
+                self._parseText()
+
+    def _advanceOneLine(self):
+        self._buffer = self._inputFile.readline()
+        self._indent = []
+        self.lineNumber = self.lineNumber + 1
+
+    def _parseDirective():
+
+    def _parseText():
+        print 'text'
 
 if __name__ == '__main__':
-    print chunk.parseFile(sys.argv[1], parseAll=True)
+    parser = SpiralWebParser()
+    print parser.parseFile(sys.argv[1])
