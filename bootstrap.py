@@ -60,8 +60,9 @@ class SpiralWebChunk():
     def setParent(self, parent):
         self.parent = parent
 
-        for line in self.lines:
-            line.parent = parent
+        if self.lines is list:
+            for line in self.lines:
+                line.parent = parent
 
     def dumpLines(self, indentLevel=''):
         output = ''
@@ -136,13 +137,13 @@ class SpiralWeb():
             if chunk.type == 'code':
                 if chunk.name in outputs.keys():
                     outputs[chunk.name].lines += chunk.lines
-                    outputs[chunk.name].options = dict(outputs[chunk.name].options + chunk.options)
+                    outputs[chunk.name].options = dict(outputs[chunk.name].options.items() + chunk.options.items())
                 else:
                     outputs[chunk.name] = chunk
 
         if chunks != None and len(chunks) > 0:
             for key in chunks:
-                if outputs[key].hasOutputPath()
+                if outputs[key].hasOutputPath():
                     outputs[key].writeOutput()
                 else:
                     print outputs[key].dumpLines()
@@ -247,7 +248,7 @@ def p_optionalpropertylist(p):
 
 def p_propertylist(p):
     '''propertylist : OPEN_PROPERTY_LIST propertysequence CLOSE_PROPERTY_LIST'''
-    p[0] = p[1]
+    p[0] = p[2]
 
 def p_propertysequence(p):
     '''propertysequence : empty 
@@ -260,11 +261,11 @@ def p_propertysequence1(p):
     if len(p) == 2:
        p[0] = p[1]
     else:
-       p[0] = [p[1], p[3]]
+       p[0] = dict(p[1].items() + p[3].items())
 
 def p_property(p):
     '''property : TEXT EQUALS TEXT'''
-    p[0] = (p[1], p[2])
+    p[0] = {p[1] : p[3]}
 
 if __name__ == '__main__':
     lexer = lex.lex()
