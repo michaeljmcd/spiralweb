@@ -42,23 +42,121 @@ def t_NEWLINE(t):
 
 # Parser definitions
 
-class SpiralWebDoc():
-    text = ''
-    name = ''
-    options = {}
-
-class SpiralWebCode():
+class SpiralWebChunk():
     lines = []
     options = {}
     name = ''
+    type = ''
+    parent = None
+
+    def getChunk(self, name):
+        for chunk in self.lines:
+            if chunk.name == name:
+                return chunk
+            elif chunk.getChunk(name) != None:
+                return chunk.getChunk(name)
+        return None
+
+    def setParent(self, parent):
+        self.parent = parent
+
+        for line in self.lines:
+            line.parent = parent
+
+    def dumpLines(self, indentLevel=''):
+        output = ''
+
+        for line in self.lines:
+            output += indentLevel + line
+
+        return output
+
+    def hasOutputPath(self):
+        return 'out' in self.options.keys()
+
+    def writeOutput(self):
+        if self.hasOutputPath():
+            content = self.dumpLines()
+            path = self.options['out']
+
+            with open(path, 'w') as fileHandle:
+                fileHandle.write(content)
+        else:
+            raise 'No output path specified'
+
+    def __add__(self, exp):
+        if isinstance(exp, basestring):
+            for line in self.lines:
+                exp += line
+            return exp
 
 class SpiralWebRef():
     name = ''
     indentLevel = 0
+    parent = None
 
     def __init__(self, name, indentLevel=''):
         self.name = name
         self.indentLevel = indentLevel
+
+    def __add__(self, exp):
+        return exp + self.parent.getChunk(name).dumpLines(indentLevel=self.indentLevel)
+
+    def getChunk(self, name):
+        if name == self.name:
+            return self
+        else:
+            return None
+
+    def setParent(self, parent):
+        self.parent = parent
+
+class SpiralWeb():
+    chunks = []
+
+    def __init__(self, chunks):
+        self.chunks = chunks
+
+        for chunk in self.chunks:
+            chunk.setParent(self)
+
+    def getChunk(self, name):
+        for chunk in self.chunks:
+            if chunk.name == name:
+                return chunk
+            elif chunk.getChunk(name) != None:
+                return chunk.getChunk(name)
+
+        return None
+
+    def tangle(self,chunks=None):
+        outputs = {}
+
+        for chunk in self.chunks:
+            if chunk.type == 'code':
+                if chunk.name in outputs.keys():
+                    outputs[chunk.name].lines += chunk.lines
+                    outputs[chunk.name].options = dict(outputs[chunk.name].options + chunk.options)
+                else:
+                    outputs[chunk.name] = chunk
+
+        if chunks != None and len(chunks) > 0:
+            for key in chunks:
+                if outputs[key].hasOutputPath()
+                    outputs[key].writeOutput()
+                else:
+                    print outputs[key].dumpLines()
+        elif '*' in outputs.keys(): 
+            content = outputs[key].dumpLines()
+
+            if outputs['*'].hasOutputPath():
+                outputs['*'].writeOutput()
+            else:
+                print content
+        else:
+            raise 'No chunks specified, no chunks with out attributes, and no root chunk defined'
+            
+        return outputs
 
 starting = 'web'
 
@@ -88,21 +186,28 @@ def p_doclines(p):
                 | OPEN_PROPERTY_LIST
                 | CLOSE_PROPERTY_LIST
                 | EQUALS'''
-    p[0] = p[1]
+    doc = SpiralWebChunk()
+    doc.type = 'doc'
+    doc.name = ''
+    doc.options = {}
+    doc.lines = p[1]
+    p[0] = doc
 
 def p_docdefn(p):
     '''docdefn : DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines'''
-    code = SpiralWebDoc()
-    code.name = p[2]
-    code.options = p[3]
-    code.lines = p[5]
-    p[0] = code
+    doc = SpiralWebChunk()
+    doc.type = 'doc'
+    doc.name = p[2].strip()
+    doc.options = p[3]
+    doc.lines = p[5]
+    p[0] = doc
 
 def p_codedefn(p):
     '''codedefn : CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
                 '''
-    code = SpiralWebCode()
-    code.name = p[2]
+    code = SpiralWebChunk()
+    code.type = 'code'
+    code.name = p[2].strip()
     code.options = p[3]
     code.lines = p[5]
     p[0] = code
@@ -124,7 +229,12 @@ def p_codeline(p):
                 | COMMA
                 | EQUALS
                 | chunkref'''
-    p[0] = p[1]
+    doc = SpiralWebChunk()
+    doc.type = 'doc'
+    doc.name = ''
+    doc.options = {}
+    doc.lines = [p[1]]
+    p[0] = doc
 
 def p_chunkref(p):
     '''chunkref : CHUNK_REFERENCE'''
@@ -164,8 +274,5 @@ if __name__ == '__main__':
     with open(sys.argv[1]) as fileHandle:
         fileInput = fileHandle.read() 
 
-    print parser.parse(fileInput)
-    #lexer.input(fileInput)
-
-    #for tok in lexer:
-    #    print tok
+    web = SpiralWeb(parser.parse(fileInput))
+    print web.tangle([sys.argv[2]])
