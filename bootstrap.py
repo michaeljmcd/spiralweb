@@ -1,4 +1,5 @@
 import sys
+import re
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -16,7 +17,6 @@ tokens = ('DOC_DIRECTIVE',
           'AT_DIRECTIVE',
           'TEXT')
 
-t_AT_DIRECTIVE = r'@@'
 t_TEXT = '[^@\[\]=,\n]+'
 t_COMMA = r','
 t_DOC_DIRECTIVE = r'@doc'
@@ -26,8 +26,13 @@ t_OPEN_PROPERTY_LIST = r'\['
 t_CLOSE_PROPERTY_LIST = r']'
 t_EQUALS = r'='
 
+def t_AT_DIRECTIVE(t):
+    r'@@'
+    t.value = '@'
+    return t
+
 def t_CHUNK_REFERENCE(t):
-    r'[ \t]*@<[^\]]+>[ \t]*'
+    r'[ \t]*@<[^\]\n]+>[ \t]*'
     inputString = t.value.rstrip()
     refStart = inputString.find('@<')
 
@@ -74,7 +79,10 @@ class SpiralWebChunk():
 
         for line in self.lines:
             if isinstance(line, basestring):
-                output += indentLevel + line
+                output += line
+
+                if line.find("\n") != -1:
+                    output += indentLevel
             else:
                 output += line.dumpLines(indentLevel)
 
@@ -91,7 +99,7 @@ class SpiralWebChunk():
             with open(path, 'w') as fileHandle:
                 fileHandle.write(content)
         else:
-            raise 'No output path specified'
+            raise BaseException('No output path specified')
 
     def __add__(self, exp):
         if isinstance(exp, basestring):
@@ -122,7 +130,12 @@ class SpiralWebRef():
         self.parent = parent
 
     def dumpLines(self, indentLevel=''):
-        return self.parent.getChunk(self.name).dumpLines(indentLevel=indentLevel+self.indentLevel)
+        refChunk = self.parent.getChunk(self.name)
+
+        if refChunk != None:
+            return indentLevel + self.indentLevel + refChunk.dumpLines(indentLevel=indentLevel+self.indentLevel)
+        else:
+            raise BaseException('No chunk named %s found' % self.name)
 
 class SpiralWeb():
     chunks = []
@@ -151,6 +164,8 @@ class SpiralWeb():
                 else:
                     outputs[chunk.name] = chunk
 
+        terminalChunks = [x for x in self.chunks if x.hasOutputPath()]
+
         if chunks != None and len(chunks) > 0:
             for key in chunks:
                 if outputs[key].hasOutputPath():
@@ -164,8 +179,11 @@ class SpiralWeb():
                 outputs['*'].writeOutput()
             else:
                 print content
+        elif len(terminalChunks) > 0:
+            for chunk in terminalChunks:
+                chunk.writeOutput()
         else:
-            raise 'No chunks specified, no chunks with out attributes, and no root chunk defined'
+            raise BaseException('No chunks specified, no chunks with out attributes, and no root chunk defined')
             
         return outputs
 
@@ -254,7 +272,10 @@ def p_chunkref(p):
 def p_optionalpropertylist(p):
     '''optionalpropertylist : propertylist 
                             | empty'''
-    p[0] = p[1]
+    if p[1] == None:
+       p[0] = {}
+    else:
+        p[0] = p[1]
 
 def p_propertylist(p):
     '''propertylist : OPEN_PROPERTY_LIST propertysequence CLOSE_PROPERTY_LIST'''
@@ -290,7 +311,7 @@ if __name__ == '__main__':
 
     chunks = []
 
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         chunks.append(sys.argv[2])
 
     web.tangle(chunks)
