@@ -128,6 +128,8 @@ without literate goodness (well, or use something like noweb, which would
 add yet another layer to the build process--one that was just not
 necessary).
 
+### Representation of a Web ###
+
 Before parsing a web, we will examine our representation for one. The
 classes derived here will be how we represent the file in memory and will
 also provide the methods that provide the real operations (i.e. tangling
@@ -174,6 +176,8 @@ class SpiralWeb():
     @<Tangle Method>
     @<Weave Method>
 @=
+
+#### Tangling ####
 
 Next, we turn our attention to the `tangle` method, as it is the one needed
 to get to the point where we can weave. Tangling occurrs in two phases.
@@ -233,7 +237,15 @@ def tangle(self,chunks=None):
     return outputs
 @=
 
+#### Weaving ####
+
 Once we have tangling, we can turn our attention to weaving documentation.
+Tangling is the simpler operation of the two, since it merely extracts and
+outputs text. Weaving, on the other hand, requires some knowledge of the
+final destination format.
+
+Examples of this, include the setting of code chunks which in all but the
+most plain of backends will require a little work to typeset.
 
 @code Weave Method
 def weave(self, chunks=None):
