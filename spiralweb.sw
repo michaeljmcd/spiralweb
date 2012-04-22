@@ -97,6 +97,9 @@ output--even if there is _also_ indentation in the chunk.
 
 # OPTIONS
 
+If no files are specified at the command line, the web will be read from
+stdin.
+
 -c *CHUNK*, \--chunk=*CHUNK*
 : Specifies one or more chunks to be tangled/woven
 
@@ -111,6 +114,9 @@ output--even if there is _also_ indentation in the chunk.
     SpiralWeb first checks to see if the destination already exists and has
     identical contents, performing no write if this is so. With this
     option, the file must be written.
+
+-h, \--help
+: Writes out a help message with the command line syntax.
 @=
 
 ## Parsing a Web ##
@@ -245,25 +251,156 @@ outputs text. Weaving, on the other hand, requires some knowledge of the
 final destination format.
 
 Examples of this, include the setting of code chunks which in all but the
-most plain of backends will require a little work to typeset.
+most plain of backends will require a little work to typeset. Our basic
+method will be expand chunks (the same way we do when tangling) and hand
+them off to the backend class to do the real work.
+
+As we go forward, we want backends to be pluggable without modifying the
+main source for SpiralWeb. The vision is to implement a full plugin system.
+But, for the time being, we will write a hard-coded backed with a class
+structure meant to facilitate the automatic loading of derivors in the
+future.
 
 @code Weave Method
 def weave(self, chunks=None):
-    outputs = {}
+    backend = PandocMarkdownBackend()
+
+    outputs = self.resolveDocumentation()
+    backend.output(outputs, chunks)
+@=
+
+Next we need to define what it means to resolve the documentation chunks.
+Because we have a `@@doc` directive, we enable a single physical web to
+output multiple woven documentation files. 
+
+We can expect that we will receive an arbitrary sequence of chunks. We want
+to combine all of the chunks separated by any `@@doc` directives under a
+single heading. The beginning of the file can be thought of as an implicit
+`@@doc` directive.
+
+To make it clear, we would expect the following file:
+
+    This is an example script.
+
+    @@code test.sh
+    #!/bin/sh
+
+    echo test
+    @@=
+
+    More examples.
+
+    @@doc Example
+    
+    More test.
+
+    @@code test2.sh
+    #!/bin/sh
+
+    echo test2
+    @@=
+
+To parse in the following chunk list:
+
+1. `doc` ("This is an example script. \\n")
+2. `code` \[test.sh] ("#!/bin/sh\n   echo test")
+3. `doc` ("More examples")
+4. `doc` \[Example] ("More test.") 
+5. `code` \[test2.sh] ("#!/bin/sh\\n  echo test2")
+
+The end result should combine chunks 1-3 under a single documentation
+chunk and chunks 4-5 under another, so that if chunks are passed to the
+output sequence, we can dump those out alone.
+
+Our method will process the chunk list until we get this result, we then
+return it as a dictionary to the caller.
+
+@code Weave Method
+def resolveDocumentation(self):
+    documentation_chunks = {}
+    last_doc = None
 
     for chunk in self.chunks:
-        if chunk.name in outputs.keys():
-            outputs[chunk.name].lines += chunk.lines
-            outputs[chunk.name].options = dict(outputs[chunk.name].options.items() + chunk.options.items())
-        else:
-            outputs[chunk.name] = chunk
+        if (chunk.type == 'doc' and chunk.name != last_doc):
+            last_doc = chunk.name
+        elif last_doc == None:
+            if chunk.type == 'doc':
+                last_Doc = chunk.name
+            else:
+                doc = SpiralWebChunk()
+                doc.type = 'doc'
+                doc.name = '*'
 
-    for key in chunks:
-        if outputs[key].hasOutputPath():
-            outputs[key].writeOutput()
-        else:
-            print outputs[key].dumpLines()
+                documentation_chunks[doc.name] = doc
+        
+        documentation_chunks[last_doc] = \
+                 documentation_chunks[last_doc] + chunk
+
+    return documentation_chunks
 @=
+
+All backends must derive from a base class which defines the high-level
+output operations along with reasonable defaults. The main starting point
+for any backend is `dispatchChunk` which accepts a chunk and then decides
+which of the main method stubs to call. It is expected that the default
+implementation in `SpiralWebBackend` will suffice. Nonetheless, it can be
+altered by other implementors should they so desire it.
+
+We will look at the `type` attribute of the chunk and call the appropriate
+method out of this list: `formatDoc`, `formatCode`, and `formatRef`. The
+base backend will define each of these methods to simply return the text
+from the chunk as it is passed in. This is clearly not very useful, but it
+gives a good fallback.
+
+@code SpiralWeb class definitions
+class SpiralWebBackend():
+    def dispatchChunk(self, chunk):
+        if chunk.type == 'doc':
+            return self.formatDoc(chunk)
+        elif chunk.type == 'code':
+            return self.formatCode(chunk)
+        elif chunk.type == 'ref':
+            return self.formatRef(chunk)
+        else:
+            raise BaseException('Unrecognized chunk type (something must have gone pretty badly wrong).')
+
+    def formatDoc(self, chunk):
+        return chunk.dumpLines()
+
+    def formatCode(self, chunk):
+        return chunk.dumpLines()
+
+    def formatRef(self, chunk):
+        return chunk.dumpLines()
+@=
+
+With our superclass acting as a superstructure, we define the Pandoc
+backend. Documentation lines will be passed through verbatim as we need to
+do no extra processing on them. Code lines, on the other hand, will require
+a little more work. We will format them for Markdown as delimited code
+blocks.
+
+@code SpiralWeb class definitions
+class PandocMarkdownBackend(SpiralWebBackend):
+    def formatDoc(self, chunk):
+        return chunk.dumpLines()
+
+    def formatCode(self, chunk):
+        leader = "~~~~~~~~~~~~~~~~~"
+        options = ''
+
+        if chunk.options.get('lang') != None:
+            options = '{.%(language) .numberLines}'
+
+        return "%(leader)%(options)\n%(code)%(trailer)\n" % \
+            {"leader": leader, "code": chunk.dumpLines(),
+             "trailer": leader, "options": options}
+
+    def formatRef(self, chunk):
+        return "<%(name)>" % {"name": chunk.name}
+@=
+
+#### Web Components ####
 
 It turns out, ironically, that there are only two kinds of chunks that
 actually matter: text-producing chunks (either document or code) and chunk
@@ -487,16 +624,6 @@ higher-level parser builders inefficient--they are all designed to make
 hard grammars simple. Along the way, they make valid assumptions, usually
 about whitespace, that seriously interfere with a truly simple grammar).
 
-The grammar needs to parse out the basic directives that we outlined in the
-manual page above. We will define the grammar in EBNF form, before
-proceeding to the code:
-
-    web = webline | empty
-    webline = code definition | doc definition | doc line
-    doc_line = text | newline | at directive | comma | open property list |
-        close property list | equals 
-    docdefn : doc_directive TEXT optionalpropertylist NEWLINE doclines
-
 @code Parser Class
 # Parser definitions
 
@@ -657,9 +784,9 @@ with the APIs we defined previously to put it all together and create a
 usable command line application.
 
 To perform command line argument parsing, we will use the `argparse`
-library that ships with Python
-
-http://docs.python.org/library/argparse.html#module-argparse
+library that ships with Python[^argparse]. Once the command line arguments
+have been parsed, we will create one or more `SpiralWeb` objects (one for
+each file) and act on them as indicated by our arguments.
 
 @code Main [out=main.py]
 import api
@@ -669,20 +796,26 @@ import sys
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser(description='Literate programming system')
-    argparser.add_argument('-c, --chunk', 
+    argparser.add_argument('-c', '--chunk', 
                            action='append',
+                           dest='chunks',
                            help='Specify a chunk to operate on.')
-    argparser.add_argument('-t, --tangle',
+    argparser.add_argument('-t', '--tangle',
                            action='store_true',
+                           dest='tangle',
                            help='Extract source code from web files.')
-    argparser.add_argument('-w, --weave',
+    argparser.add_argument('-w', '--weave',
                            action='store_true',
+                           dest='weave',
                            help='Generate documentation from web files.')
-    argparser.add_argument('-f, --force',
+    argparser.add_argument('-f', '--force',
+                           dest='force',
                            help='Force output to be written.')
+    argparser.add_argument('files', nargs=argparse.REMAINDER)
 
     options = argparser.parse_args()
-    print options
 @=
+
+[^argparse]: [http://docs.python.org/library/argparse.html#module-argparse]
 
 // vim: set tw=75 ai: 
