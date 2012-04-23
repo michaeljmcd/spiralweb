@@ -148,8 +148,11 @@ SpiralWeb fully extensible, `api` will be the public-facing aspect of the
 source.
 
 @code API Classes [out=api.py]
+import sys
+import parser
+
 @<SpiralWeb chunk class definitions>
-@<SpiralWeb class definition>
+@<SpiralWeb class definitions>
 @=
 
 The main class to represent a web is `SpiralWeb` and its state is
@@ -160,7 +163,7 @@ application was invoked). Beyond this, we provide tangle and weave
 operations to actually perform the two major functions of a literate
 system.
 
-@code SpiralWeb class definition
+@code SpiralWeb class definitions
 class SpiralWeb():
     chunks = []
     baseDir = ''
@@ -181,6 +184,33 @@ class SpiralWeb():
 
     @<Tangle Method>
     @<Weave Method>
+
+@<Alternate SpiralWeb creation functions>
+@=
+
+In order to create more separation between the command-line presentation
+layer and our main logic, we will define functions to parse input, given
+the options we expect. In order to make this method generic, we will allow
+the path parameter to be `None`. When this occurs, we assume that we need
+to read `stdin` to get the input. In either event, we load the input into a
+string, then parse it, returning the resultant `SpiralWeb` object.
+
+@code Alternate SpiralWeb creation functions
+def parseSwFile(path):
+    handle = None
+
+    if path == None:
+        handle = sys.stdin
+        path = 'stdin'
+    else:
+        handle = open(path, 'r')
+
+    fileInput = handle.read()
+    handle.close()
+
+    chunkList = parser.parse_webs({path: fileInput})[path]
+
+    return SpiralWeb(chunks=chunkList)
 @=
 
 #### Tangling ####
@@ -220,6 +250,8 @@ def tangle(self,chunks=None):
                 outputs[chunk.name].options = dict(outputs[chunk.name].options.items() + chunk.options.items())
             else:
                 outputs[chunk.name] = chunk
+
+    terminalChunks = [x for x in self.chunks if x.hasOutputPath()]
 
     if chunks != None and len(chunks) > 0:
         for key in chunks:
@@ -321,20 +353,25 @@ def resolveDocumentation(self):
     last_doc = None
 
     for chunk in self.chunks:
-        if (chunk.type == 'doc' and chunk.name != last_doc):
+        if (chunk.type == 'doc' and chunk.name != last_doc \
+            and chunk.name != ''):
             last_doc = chunk.name
         elif last_doc == None:
             if chunk.type == 'doc':
-                last_Doc = chunk.name
+                last_doc = chunk.name
             else:
                 doc = SpiralWebChunk()
                 doc.type = 'doc'
                 doc.name = '*'
+                last_doc = '*'
 
                 documentation_chunks[doc.name] = doc
         
-        documentation_chunks[last_doc] = \
-                 documentation_chunks[last_doc] + chunk
+        if last_doc in documentation_chunks:
+            documentation_chunks[last_doc] = \
+                     documentation_chunks[last_doc] + chunk
+        else:
+            documentation_chunks[last_doc] = chunk
 
     return documentation_chunks
 @=
@@ -392,7 +429,7 @@ class PandocMarkdownBackend(SpiralWebBackend):
         if chunk.options.get('lang') != None:
             options = '{.%(language) .numberLines}'
 
-        return "%(leader)%(options)\n%(code)%(trailer)\n" % \
+        return "%(leader)s%(options)s\n%(code)s%(trailer)s\n" % \
             {"leader": leader, "code": chunk.dumpLines(),
              "trailer": leader, "options": options}
 
@@ -492,7 +529,7 @@ class SpiralWebRef():
         refChunk = self.parent.getChunk(self.name)
 
         if refChunk != None:
-            return refChunk.dumpLines(indentLevel=indentLevel+self.indentLevel)
+            return indentLevel + self.indentLevel + refChunk.dumpLines(indentLevel=indentLevel+self.indentLevel)
         else:
             raise BaseException('No chunk named %s found' % self.name)
 
@@ -508,7 +545,7 @@ representing the list of all web files passed in.
 import sys
 import ply.lex as lex
 import ply.yacc as yacc
-from api import SpiralWebChunk, SpiralWebRef, SpiralWeb
+import api
 
 @<Lexer Class>
 @<Parser Class>
@@ -572,12 +609,12 @@ class SpiralWebLexer:
     t_CLOSE_PROPERTY_LIST = r']'
     t_EQUALS = r'='
 
-    def t_AT_DIRECTIVE(t):
-        r'@@'
+    def t_AT_DIRECTIVE(self, t):
+        r'@@@@'
         t.value = '@@'
         return t
 
-    def t_CHUNK_REFERENCE(t):
+    def t_CHUNK_REFERENCE(self, t):
         r'[ \t]*@@<[^\]\n]+>[ \t]*'
         inputString = t.value.rstrip()
         refStart = inputString.find('@@<')
@@ -586,12 +623,12 @@ class SpiralWebLexer:
                    'ref' : inputString[refStart+2:len(inputString)-1]}
         return t
 
-    def t_NEWLINE(t):
+    def t_NEWLINE(self, t):
         r'\n+'
         t.lexer.lineno += len(t.value)
         return t
 
-    def t_error(t):
+    def t_error(self, t):
         print "Illegal character '%s' on line %s" % (t.value[0], t.lineno)
         t.lexer.skip(1)
 
@@ -629,8 +666,18 @@ about whitespace, that seriously interfere with a truly simple grammar).
 
 class SpiralWebParser:
     starting = 'web'
+    tokens = []
 
-    def p_web(p):
+    def __init__(self):
+        self.tokens = SpiralWebLexer.tokens
+        self.build()
+
+    def p_error(self, p):
+        print ("Syntax error at token %(name)s at line %(line)i" % \
+                {"line": p.lineno, "name": p.type })
+        yacc.errok()
+
+    def p_web(self, p):
         '''web : webtl web
                | empty'''
         if len(p) == 3:
@@ -638,17 +685,17 @@ class SpiralWebParser:
         else:
             p[0] = []
 
-    def p_webtl(p):
+    def p_webtl(self, p):
         '''webtl : codedefn
                  | docdefn
                  | doclines'''
         p[0] = p[1]
 
-    def p_empty(p):
+    def p_empty(self, p):
         'empty :'
         pass
 
-    def p_doclines(p):
+    def p_doclines(self, p):
         '''doclines : TEXT
                     | NEWLINE
                     | AT_DIRECTIVE
@@ -656,33 +703,33 @@ class SpiralWebParser:
                     | OPEN_PROPERTY_LIST
                     | CLOSE_PROPERTY_LIST
                     | EQUALS'''
-        doc = SpiralWebChunk()
+        doc = api.SpiralWebChunk()
         doc.type = 'doc'
         doc.name = ''
         doc.options = {}
         doc.lines = [p[1]]
         p[0] = doc
 
-    def p_docdefn(p):
+    def p_docdefn(self, p):
         '''docdefn : DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines'''
-        doc = SpiralWebChunk()
+        doc = api.SpiralWebChunk()
         doc.type = 'doc'
         doc.name = p[2].strip()
         doc.options = p[3]
         doc.lines = [p[5]]
         p[0] = doc
 
-    def p_codedefn(p):
+    def p_codedefn(self, p):
         '''codedefn : CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
                     '''
-        code = SpiralWebChunk()
+        code = api.SpiralWebChunk()
         code.type = 'code'
         code.name = p[2].strip()
         code.options = p[3]
         code.lines = p[5]
         p[0] = code
 
-    def p_codelines(p):
+    def p_codelines(self, p):
         '''codelines : codeline codelines
                      | empty'''
         if len(p) == 3:
@@ -690,7 +737,7 @@ class SpiralWebParser:
         else:
            p[0] = []
 
-    def p_codeline(p):
+    def p_codeline(self, p):
         '''codeline : TEXT 
                     | NEWLINE
                     | AT_DIRECTIVE
@@ -699,18 +746,18 @@ class SpiralWebParser:
                     | COMMA
                     | EQUALS
                     | chunkref'''
-        doc = SpiralWebChunk()
+        doc = api.SpiralWebChunk()
         doc.type = 'doc'
         doc.name = ''
         doc.options = {}
         doc.lines = [p[1]]
         p[0] = doc
 
-    def p_chunkref(p):
+    def p_chunkref(self, p):
         '''chunkref : CHUNK_REFERENCE'''
-        p[0] = SpiralWebRef(p[1]['ref'], p[1]['indent'])
+        p[0] = api.SpiralWebRef(p[1]['ref'], p[1]['indent'])
 
-    def p_optionalpropertylist(p):
+    def p_optionalpropertylist(self, p):
         '''optionalpropertylist : propertylist 
                                 | empty'''
 
@@ -719,16 +766,16 @@ class SpiralWebParser:
         else:
             p[0] = p[1]
 
-    def p_propertylist(p):
+    def p_propertylist(self, p):
         '''propertylist : OPEN_PROPERTY_LIST propertysequence CLOSE_PROPERTY_LIST'''
         p[0] = p[2]
 
-    def p_propertysequence(p):
+    def p_propertysequence(self, p):
         '''propertysequence : empty 
                             | propertysequence1'''
         p[0] = p[1]
 
-    def p_propertysequence1(p):
+    def p_propertysequence1(self, p):
         '''propertysequence1 : property 
                              | propertysequence1 COMMA property'''
         if len(p) == 2:
@@ -736,7 +783,7 @@ class SpiralWebParser:
         else:
            p[0] = dict(p[1].items() + p[3].items())
 
-    def p_property(p):
+    def p_property(self, p):
         '''property : TEXT EQUALS TEXT'''
         p[0] = {p[1] : p[3]}
 
@@ -747,8 +794,7 @@ class SpiralWebParser:
         self.parser = yacc.yacc(module=self, **kwargs)
 
     def parse(self, input):
-        self.build()
-        return self.parser.parse(fileInput)
+        return self.parser.parse(input)
 
 @<Parsing Interface Functions>
 @=
@@ -770,7 +816,7 @@ def parse_webs(input_strings):
     output = {}
     parser = SpiralWebParser()
 
-    for key, input in input_strings:
+    for key, input in input_strings.iteritems():
         output[key] = parser.parse(input)
 
     return output
@@ -802,10 +848,12 @@ if __name__ == '__main__':
                            help='Specify a chunk to operate on.')
     argparser.add_argument('-t', '--tangle',
                            action='store_true',
+                           default=False,
                            dest='tangle',
                            help='Extract source code from web files.')
     argparser.add_argument('-w', '--weave',
                            action='store_true',
+                           default=False,
                            dest='weave',
                            help='Generate documentation from web files.')
     argparser.add_argument('-f', '--force',
@@ -814,8 +862,25 @@ if __name__ == '__main__':
     argparser.add_argument('files', nargs=argparse.REMAINDER)
 
     options = argparser.parse_args()
+
+    if not (options.tangle or options.weave):
+        options.tangle = True
+        options.weave = True
+
+    if len(options.files) == 0:
+        options.files.append(None)
+
+    for path in options.files:
+        web = api.parseSwFile(path)
+
+        if options.tangle:
+            web.tangle()
+
+        if options.weave:
+            web.weave()
 @=
 
 [^argparse]: [http://docs.python.org/library/argparse.html#module-argparse]
+
 
 // vim: set tw=75 ai: 
