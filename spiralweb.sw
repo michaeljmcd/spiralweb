@@ -260,7 +260,7 @@ def tangle(self,chunks=None):
             else:
                 print outputs[key].dumpLines()
     elif '*' in outputs.keys(): 
-        content = outputs[key].dumpLines()
+        content = outputs['*'].dumpLines()
 
         if outputs['*'].hasOutputPath():
             outputs['*'].writeOutput()
@@ -502,6 +502,15 @@ class SpiralWebChunk():
             for line in self.lines:
                 exp += line
             return exp
+        else:
+            merged = SpiralWebChunk()
+            merged.lines = self.lines + exp.lines
+            merged.name = self.name
+            merged.type = self.type
+            merged.parent = self.parent
+            merged.options = dict(self.options.items() + exp.options.items())
+
+            return merged
 
 class SpiralWebRef():
     name = ''
