@@ -409,6 +409,41 @@ class SpiralWebBackend():
 
     def formatRef(self, chunk):
         return chunk.dumpLines()
+
+    @<SpiralWebBackend Output Methods>
+@=
+
+Once we have handled our basic formatting, we need to actually output the
+user's request. Again, this method is not likely to have any reason to
+change in inheriting classes, but we define it here for ease and just in
+case. Our basic logic closely follows that of the `tangle` method above.
+
+I. If a non-empty list of chunks has been provided to export, we will
+output all documkentation chunks of the same name. Please not that there
+can be documentation and code chunks of the same name without error.
+II. If there is one or more terminal (i.e. a `@@doc` directive with an
+`out` parmeter) write it out.
+III. If none of the above apply, concatenate all output and write it to
+`stdout`.
+
+@code SpiralWebBackend Output Methods
+def output(self, topLevelDocs, chunksToOutput):
+    terminalChunks = [x for w, x in topLevelDocs.items() \
+                      if x.type == 'doc' and x.hasOutputPath()]
+
+    if chunksToOutput != None and len(chunksToOutput) > 0:
+        for key in topLevelDocs:
+            if topLevelDocs[key].type == 'doc':
+                if topLevelDocs[key].hasOutputPath():
+                    topLevelDocs[key].writeOutput()
+                else:
+                    print topLevelDocs[key].dumpLines()
+    elif len(terminalChunks) > 0:
+        for chunk in terminalChunks:
+            chunk.writeOutput()
+    else:
+        for name, chunk in topLevelDocs.items():
+            print chunk.dumpLines()
 @=
 
 With our superclass acting as a superstructure, we define the Pandoc
@@ -508,7 +543,7 @@ class SpiralWebChunk():
             merged.name = self.name
             merged.type = self.type
             merged.parent = self.parent
-            merged.options = dict(self.options.items() + exp.options.items())
+            merged.options = self.options
 
             return merged
 
