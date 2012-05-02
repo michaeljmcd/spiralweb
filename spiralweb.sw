@@ -1,4 +1,4 @@
-@doc SpiralWeb [out=spiralweb.md]
+@doc SpiralWeb [out=doc/spiralweb.md]
 % SpiralWeb--A Literate Programming System
 % Michael McDermott
 % April 08, 2012
@@ -38,7 +38,7 @@ can be used as well).
 We will define our target usage succinctly, in the form of the man page for
 the executable `spiralweb`.
 
-@code Man Page [out=spiralweb.1.md,lang=md]
+@code Man Page [out=doc/spiralweb.1.md,lang=markdown]
 % SPIRALWEB(1) SpiralWeb User Manuals
 % Michael McDermott
 % April 8, 2012
@@ -147,7 +147,7 @@ other sections. Of note is the fact that, when we get around to making
 SpiralWeb fully extensible, `api` will be the public-facing aspect of the
 source.
 
-@code API Classes [out=api.py,lang=python]
+@code API Classes [out=spiralweb/api.py,lang=python]
 import sys
 import parser
 
@@ -597,7 +597,7 @@ We will package both the lexer and the parser into a single file,
 `parser.py` and export a single function to return a list of objects,
 representing the list of all web files passed in.
 
-@code Lexer/Parser [out=parser.py]
+@code Lexer/Parser [out=spiralweb/parser.py]
 import sys
 import ply.lex as lex
 import ply.yacc as yacc
@@ -890,7 +890,7 @@ library that ships with Python[^argparse]. Once the command line arguments
 have been parsed, we will create one or more `SpiralWeb` objects (one for
 each file) and act on them as indicated by our arguments.
 
-@code Main [out=main.py]
+@code Main [out=spiralweb/main.py]
 import api
 import parser
 import argparse
