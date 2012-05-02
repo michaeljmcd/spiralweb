@@ -38,7 +38,7 @@ can be used as well).
 We will define our target usage succinctly, in the form of the man page for
 the executable `spiralweb`.
 
-@code Man Page [out=spiralweb.1.md]
+@code Man Page [out=spiralweb.1.md,lang=md]
 % SPIRALWEB(1) SpiralWeb User Manuals
 % Michael McDermott
 % April 8, 2012
@@ -122,12 +122,12 @@ stdin.
 ## Parsing a Web ##
 
 In order to parse a web, we will use
-PLY^[[http://www.dabeaz.com/ply/](PLY Website)] for both lexing and
-parsing. A hand-written parser was briefly considered, but avoided as being
-too ponderous. Some experiments were made with pyparsing, but its default
-policy of ignoring whitespace, while ordinarily useful, proved annoying to
-work around. Some reading was done on LEPL, but it seemed very similar to
-pyparsing. In the end, going old-school worked out very, very well.
+PLY^[plyWebsite] for both lexing and parsing. A hand-written parser was
+briefly considered, but avoided as being too ponderous. Some experiments
+were made with pyparsing, but its default policy of ignoring whitespace,
+while ordinarily useful, proved annoying to work around. Some reading
+was done on LEPL, but it seemed very similar to pyparsing. In the end,
+going old-school worked out very, very well.
 
 Yes, that statement was past tense. The bootstrapper had to be written
 without literate goodness (well, or use something like noweb, which would
@@ -147,7 +147,7 @@ other sections. Of note is the fact that, when we get around to making
 SpiralWeb fully extensible, `api` will be the public-facing aspect of the
 source.
 
-@code API Classes [out=api.py]
+@code API Classes [out=api.py,lang=python]
 import sys
 import parser
 
@@ -368,8 +368,7 @@ def resolveDocumentation(self):
                 documentation_chunks[doc.name] = doc
         
         if last_doc in documentation_chunks:
-            documentation_chunks[last_doc] = \
-                     documentation_chunks[last_doc] + chunk
+            documentation_chunks[last_doc].lines.append(chunk)
         else:
             documentation_chunks[last_doc] = chunk
 
@@ -392,14 +391,16 @@ gives a good fallback.
 @code SpiralWeb class definitions
 class SpiralWebBackend():
     def dispatchChunk(self, chunk):
-        if chunk.type == 'doc':
+        if isinstance(chunk, basestring):
+            return chunk
+        elif chunk.type == 'doc':
             return self.formatDoc(chunk)
         elif chunk.type == 'code':
             return self.formatCode(chunk)
         elif chunk.type == 'ref':
             return self.formatRef(chunk)
         else:
-            raise BaseException('Unrecognized chunk type (something must have gone pretty badly wrong).')
+                raise BaseException('Unrecognized chunk type (something must have gone pretty badly wrong).')
 
     def formatDoc(self, chunk):
         return chunk.dumpLines()
@@ -435,15 +436,22 @@ def output(self, topLevelDocs, chunksToOutput):
         for key in topLevelDocs:
             if topLevelDocs[key].type == 'doc':
                 if topLevelDocs[key].hasOutputPath():
-                    topLevelDocs[key].writeOutput()
+                    self.writeOutChunk(topLevelDocs[key])
                 else:
-                    print topLevelDocs[key].dumpLines()
+                    print self.dispatchChunk(topLevelDocs[key])
     elif len(terminalChunks) > 0:
         for chunk in terminalChunks:
-            chunk.writeOutput()
+            self.writeOutChunk(chunk)
     else:
         for name, chunk in topLevelDocs.items():
-            print chunk.dumpLines()
+            print self.dispatchChunk(chunk)
+
+def writeOutChunk(self, chunk):
+    if not 'out' in chunk.options:
+        raise BaseException('When writing out a chunk with writeOutChunk an output parameter is expected')
+    else:
+        with open(chunk.options['out'], 'w') as outFile:
+            outFile.write(self.dispatchChunk(chunk))
 @=
 
 With our superclass acting as a superstructure, we define the Pandoc
@@ -455,21 +463,25 @@ blocks.
 @code SpiralWeb class definitions
 class PandocMarkdownBackend(SpiralWebBackend):
     def formatDoc(self, chunk):
-        return chunk.dumpLines()
+        lines = [self.dispatchChunk(x) for x in chunk.lines] 
+        return ''.join(lines)
 
     def formatCode(self, chunk):
         leader = "~~~~~~~~~~~~~~~~~"
         options = ''
 
         if chunk.options.get('lang') != None:
-            options = '{.%(language) .numberLines}'
+            options = '{.%(language)s .numberLines}' % \
+                {'language': chunk.options.get('lang')}
+
+        lines = [self.dispatchChunk(x) for x in chunk.lines]
 
         return "%(leader)s%(options)s\n%(code)s%(trailer)s\n" % \
-            {"leader": leader, "code": chunk.dumpLines(),
+            {"leader": leader, "code": ''.join(lines),
              "trailer": leader, "options": options}
 
     def formatRef(self, chunk):
-        return "<%(name)>" % {"name": chunk.name}
+        return "<%(name)s>" % {"name": chunk.name}
 @=
 
 #### Web Components ####
@@ -924,7 +936,22 @@ if __name__ == '__main__':
             web.weave()
 @=
 
-[^argparse]: [http://docs.python.org/library/argparse.html#module-argparse]
+## Conclusion ##
 
+As we wrap up, our main conclusions are to look forward to the sorts of
+advancements we would like to see in the next version:
+
+* Indexing--unlike noweb and funnelweb, we did not include indexing. The
+  plan would be to add an `@@index` directive to the grammar that allows
+  for web-wide and chunk-specific indexing.
+* Git-like command line syntax--keep the default behavior, but allow
+  specific operations to be run with a syntax like `spiralweb tangle
+  foo.sw` or `spiralweb weave foo.sw`. `argparse` provides this
+  functionality, so it ought not to be a difficult transition.
+
+## References ##
+
+[^argparse]: [http://docs.python.org/library/argparse.html#module-argparse]
+[^plyWebsite]: (PLY Website)[http://www.dabeaz.com/ply/]
 
 // vim: set tw=75 ai: 
