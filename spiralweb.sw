@@ -890,13 +890,13 @@ library that ships with Python[^argparse]. Once the command line arguments
 have been parsed, we will create one or more `SpiralWeb` objects (one for
 each file) and act on them as indicated by our arguments.
 
-@code Main [out=spiralweb/main.py]
+@code Main [out=spiralweb/main.py,lang=python]
 import api
 import parser
 import argparse
 import sys
 
-if __name__ == '__main__':
+def main():
     argparser = argparse.ArgumentParser(description='Literate programming system')
     argparser.add_argument('-c', '--chunk', 
                            action='append',
@@ -934,6 +934,29 @@ if __name__ == '__main__':
 
         if options.weave:
             web.weave()
+
+if __name__ == '__main__':
+    main()
+@=
+
+## Packaging ##
+
+In order to ease installation, we will use setuptools. Because PLY
+generates code, we have no dependencies outside of the base Python install.
+
+@code setuptools file [out=setup.py,lang=python]
+from setuptools import setup, find_packages
+
+setup(
+        name = 'spiralweb',
+        version = '0.1',
+        packages = find_packages(),
+        license = 'MIT',
+        entry_points = {
+            'console_scripts': [
+                'spiralweb = spiralweb.main:main'
+            ]}
+)
 @=
 
 ## Conclusion ##
@@ -948,6 +971,7 @@ advancements we would like to see in the next version:
   specific operations to be run with a syntax like `spiralweb tangle
   foo.sw` or `spiralweb weave foo.sw`. `argparse` provides this
   functionality, so it ought not to be a difficult transition.
+* Allow external webs to be included in a web.
 
 ## References ##
 
