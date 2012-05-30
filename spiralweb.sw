@@ -954,7 +954,7 @@ setup(
         packages = ['spiralweb'],
         description = 'A lightweight-markup based literate programming system',    
         author = 'Michael McDermott',
-        author_email = 'mmcdermott@mad-computer-scientist.com',
+        author_email = 'mmcdermott@@mad-computer-scientist.com',
         url = 'https://gitorious.org/spiralweb',
         keywords = ['literate programming', 'lp', 'markdown'],
         license = 'MIT',
