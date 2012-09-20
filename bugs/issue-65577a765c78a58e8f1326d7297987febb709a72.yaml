@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Exceptions when chunk not found
+desc: When there is a reference in a code chunk to another code chunk, but the reference does not exist, spiralweb crashes with a stack trace. The information is there to correct the problem, but spiralweb should error out more gracefully.
+type: :bugfix
+component: spiralweb
+release: 
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-09-20 17:33:25.309251 Z
+references: []
+
+id: 65577a765c78a58e8f1326d7297987febb709a72
+log_events: 
+- - 2012-09-20 17:33:28.508934 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

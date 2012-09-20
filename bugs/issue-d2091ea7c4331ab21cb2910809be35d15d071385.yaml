@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Pip package does not install cleanly
+desc: The executable works fine when the egg is installed locally, but it does not work when run from a pip install.
+type: :bugfix
+component: spiralweb
+release: v0.2
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-09-20 17:40:24.403328 Z
+references: []
+
+id: d2091ea7c4331ab21cb2910809be35d15d071385
+log_events: 
+- - 2012-09-20 17:40:25.476343 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

@@ -131,7 +131,7 @@ was done on LEPL, but it seemed very similar to pyparsing. In the end,
 going old-school worked out very, very well.
 
 Yes, that statement was past tense. The bootstrapper had to be written
-without literate goodness (well, or use something like noweb, which would
+without literate goodness (or use something like noweb, which would
 add yet another layer to the build process--one that was just not
 necessary).
 
@@ -421,7 +421,7 @@ change in inheriting classes, but we define it here for ease and just in
 case. Our basic logic closely follows that of the `tangle` method above.
 
 I. If a non-empty list of chunks has been provided to export, we will
-output all documkentation chunks of the same name. Please not that there
+output all documentation chunks of the same name. Please not that there
 can be documentation and code chunks of the same name without error.
 II. If there is one or more terminal (i.e. a `@@doc` directive with an
 `out` parmeter) write it out.

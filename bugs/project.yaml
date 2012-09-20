@@ -1,0 +1,27 @@
+--- !ditz.rubyforge.org,2008-03-06/project 
+name: spiralweb
+version: "0.5"
+components: 
+- !ditz.rubyforge.org,2008-03-06/component 
+  name: spiralweb
+- !ditz.rubyforge.org,2008-03-06/component 
+  name: Vim syntax file
+releases: 
+- !ditz.rubyforge.org,2008-03-06/release 
+  name: v0.1
+  status: :unreleased
+  release_time: 
+  log_events: 
+  - - 2012-09-20 17:38:56.267936 Z
+    - Michael McDermott <michael@zion>
+    - created
+    - First version released to the world.
+- !ditz.rubyforge.org,2008-03-06/release 
+  name: v0.2
+  status: :unreleased
+  release_time: 
+  log_events: 
+  - - 2012-09-20 17:39:14.798756 Z
+    - Michael McDermott <michael@zion>
+    - created
+    - ""

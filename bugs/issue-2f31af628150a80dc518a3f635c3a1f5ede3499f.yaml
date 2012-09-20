@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Change CLI syntax
+desc: The syntax of the command line relies on simple switches (-t, -w) to tangle and weave. Change it to be git or svn-like, with a nice little DSL right at the command line.
+type: :feature
+component: spiralweb
+release: 
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-09-20 17:34:53.410778 Z
+references: []
+
+id: 2f31af628150a80dc518a3f635c3a1f5ede3499f
+log_events: 
+- - 2012-09-20 17:34:55.107161 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""
