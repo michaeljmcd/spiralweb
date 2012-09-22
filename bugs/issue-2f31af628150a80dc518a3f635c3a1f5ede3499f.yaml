@@ -3,7 +3,7 @@ title: Change CLI syntax
 desc: The syntax of the command line relies on simple switches (-t, -w) to tangle and weave. Change it to be git or svn-like, with a nice little DSL right at the command line.
 type: :feature
 component: spiralweb
-release: 
+release: v0.2
 reporter: Michael McDermott <michael@zion>
 status: :unstarted
 disposition: 
@@ -15,4 +15,8 @@ log_events:
 - - 2012-09-20 17:34:55.107161 Z
   - Michael McDermott <michael@zion>
   - created
+  - ""
+- - 2012-09-21 01:39:43.489272 Z
+  - Michael McDermott <michael@zion>
+  - assigned to release v0.2 from unassigned
   - ""

@@ -3,7 +3,7 @@ title: Property inheritance
 desc: At present, chunk properties do not propogate for children. So, if I define a top level chunk with a lang defined, it does not flow downward and I must set the lang for each and every child. For properties that the child does not define or modify, we should default to the parent values.
 type: :feature
 component: spiralweb
-release: 
+release: v0.3
 reporter: Michael McDermott <michael@zion>
 status: :unstarted
 disposition: 
@@ -15,4 +15,8 @@ log_events:
 - - 2012-09-20 17:37:00.803984 Z
   - Michael McDermott <michael@zion>
   - created
+  - ""
+- - 2012-09-22 04:06:27.876672 Z
+  - Michael McDermott <michael@zion>
+  - assigned to release v0.3 from unassigned
   - ""

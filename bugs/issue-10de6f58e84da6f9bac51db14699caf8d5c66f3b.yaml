@@ -3,7 +3,7 @@ title: PLY leaks information
 desc: The parser builder, PLY, does a couple of annoying things out of the package. When issuing a tangle or a weave, it prints "Generating LALR tables" every time. First of all, the LALR tables should be cached. Secondly, if they are not, it should not pester the user. Also, it dumps out its tables into the user's working directory, instead of referencing ones in its install.
 type: :bugfix
 component: spiralweb
-release: 
+release: v0.2
 reporter: Michael McDermott <michael@zion>
 status: :unstarted
 disposition: 
@@ -15,4 +15,8 @@ log_events:
 - - 2012-09-20 17:38:25.741315 Z
   - Michael McDermott <michael@zion>
   - created
+  - ""
+- - 2012-09-21 01:38:26.705648 Z
+  - Michael McDermott <michael@zion>
+  - assigned to release v0.2 from unassigned
   - ""

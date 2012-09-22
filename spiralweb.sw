@@ -49,7 +49,7 @@ spiralweb - literate programming system
 
 # SYNOPSIS
 
-spiralweb [*options*] [*web-file*]...
+spiralweb command [*options*] [*web-file*]...
 
 # DESCRIPTION
 
@@ -98,26 +98,33 @@ symbol.
 
 # OPTIONS
 
+At least one command must be specified, and the command can be one of the
+following:
+
+`tangle`
+:  Extracts the compiler-readable source from each web provided at the
+   command line.
+
+`weave`
+:  Creates backend-ready source for generating documentation.
+
+`help`
+:  Prints out a help message and exits.
+
 If no files are specified at the command line, the web will be read from
 stdin.
 
+The following options apply to each of the commands listed above, except
+help:
+
 -c *CHUNK*, \--chunk=*CHUNK*
 : Specifies one or more chunks to be tangled/woven
-
--t, \--tangle
-: Performs a tangle operation _only_.
-
--w, \--weave
-: Performs a weave operation _only_.
 
 -f, \--force
 : Ensures that any output will be written out, no matter what. By default,
     SpiralWeb first checks to see if the destination already exists and has
     identical contents, performing no write if this is so. With this
     option, the file must be written.
-
--h, \--help
-: Writes out a help message with the command line syntax.
 @=
 
 ## Parsing a Web ##
@@ -891,6 +898,11 @@ library that ships with Python[^argparse]. Once the command line arguments
 have been parsed, we will create one or more `SpiralWeb` objects (one for
 each file) and act on them as indicated by our arguments.
 
+The goal is for SpiralWeb to have a sort of CLI DSL, as is the case with
+many good command line utilities, like `git` or `svn`. Towards that end, we
+will use the subparser ability of `argparse` to build parsers to handle
+each of our commands. We can then act upon what is presented us.
+
 @code Main [out=spiralweb/main.py,lang=python]
 import api
 import parser
@@ -899,42 +911,31 @@ import sys
 
 def main():
     argparser = argparse.ArgumentParser(description='Literate programming system')
-    argparser.add_argument('-c', '--chunk', 
-                           action='append',
-                           dest='chunks',
-                           help='Specify a chunk to operate on.')
-    argparser.add_argument('-t', '--tangle',
-                           action='store_true',
-                           default=False,
-                           dest='tangle',
-                           help='Extract source code from web files.')
-    argparser.add_argument('-w', '--weave',
-                           action='store_true',
-                           default=False,
-                           dest='weave',
-                           help='Generate documentation from web files.')
-    argparser.add_argument('-f', '--force',
-                           dest='force',
-                           help='Force output to be written.')
-    argparser.add_argument('files', nargs=argparse.REMAINDER)
+    subparsers = argparser.add_subparsers(dest='command')
+
+    tangle_parser = subparsers.add_parser('tangle', help='Extract source files from SpiralWeb literate webs')
+    tangle_parser.add_argument('files', nargs=argparse.REMAINDER)
+
+    weave_parser = subparsers.add_parser('weave', help='Generate documentation source files from SpiralWeb literate webs')
+    weave_parser.add_argument('files', nargs=argparse.REMAINDER)
+
+    help = subparsers.add_parser('help', help='Print help')
 
     options = argparser.parse_args()
-
-    if not (options.tangle or options.weave):
-        options.tangle = True
-        options.weave = True
 
     if len(options.files) == 0:
         options.files.append(None)
 
-    for path in options.files:
-        web = api.parseSwFile(path)
+    if options.command == 'help':
+        argparser.print_help()
+    else:
+        for path in options.files:
+            web = api.parseSwFile(path)
 
-        if options.tangle:
-            web.tangle()
-
-        if options.weave:
-            web.weave()
+            if options.command == 'tangle':
+                web.tangle()
+            elif options.command == 'weave':
+                web.weave()
 
 if __name__ == '__main__':
     main()
