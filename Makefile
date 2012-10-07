@@ -1,5 +1,5 @@
 src: spiralweb.sw
-	spiralweb tangle spiralweb.sw && python spiralweb/main.py tangle tests.sw && mv *tab.py spiralweb/
+	spiralweb tangle spiralweb.sw && python spiralweb/main.py tangle tests.sw
 
 doc/spiralweb.md: spiralweb.sw
 	spiralweb weave spiralweb.sw
@@ -10,4 +10,4 @@ dist: src
 html: doc/spiralweb.html
 
 doc/spiralweb.html: doc/spiralweb.md
-	pandoc doc/spiralweb.md -o doc/spiralweb.html --smart --standalone
+	pandoc doc/spiralweb.md -o doc/spiralweb.html --smart --standalone --toc

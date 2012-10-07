@@ -234,14 +234,14 @@ focus of SpiralWeb is build situations where we need to write each of our
 webs out to a source tree. However, it only makes sense to ensure that
 SpiralWeb works with either methodology. Our output strategy will be:
 
-I. If the parameter `chunks` includes a list, we output each chunk in that
-list, and no others.
-II. If no list has been passed in, but a chunk named `*` exists, we output
-that chunk (the `*` chunk is considered the "root chunk" in this case).
-III. If neither of the previous conditions matches and there are one or
-more chunks with an `out` parameter, we output all of them.
-IV. If none of the above match, we raise an exception indicating the
-problem.
+I.  If the parameter `chunks` includes a list, we output each chunk in that
+    list, and no others.
+II.  If no list has been passed in, but a chunk named `*` exists, we output
+     that chunk (the `*` chunk is considered the "root chunk" in this case).
+III.  If neither of the previous conditions matches and there are one or
+      more chunks with an `out` parameter, we output all of them.
+IV.  If none of the above match, we raise an exception indicating the
+     problem.
 
 Understanding that "output", in this context means to write a chunk's lines
 out to the location specified by the `out` option, if it exists, and to
@@ -884,14 +884,14 @@ but are set using the same rationale as the lexer. Refer to the commentary
 in that section for more information.
 
 @code Parsing Factory Functions [lang=python]
-    def build(self,**kwargs):
-        self.lexer = SpiralWebLexer()
-        self.lexer.build()
+def build(self,**kwargs):
+    self.lexer = SpiralWebLexer()
+    self.lexer.build()
 
-        self.parser = yacc.yacc(module=self, optimize=False, debug=False, **kwargs)
+    self.parser = yacc.yacc(module=self, optimize=False, debug=False, **kwargs)
 
-    def parse(self, input):
-        return self.parser.parse(input)
+def parse(self, input):
+    return self.parser.parse(input)
 @=
  
 As we do not wish to leak implementation details to the interface, we will
@@ -942,7 +942,7 @@ import sys
 
 def main():
     argparser = argparse.ArgumentParser(prog='spiralweb', description='Literate programming system')
-#argparser.add_argument('version', help='Print version')
+    argparser.add_argument('--version', action='version', version='0.2-BETA')
 
     subparsers = argparser.add_subparsers(dest='command')
 
@@ -1017,7 +1017,7 @@ advancements we would like to see in the next version:
 
 ## References ##
 
-[^argparse]: [http://docs.python.org/library/argparse.html#module-argparse]
+[^argparse]: <http://docs.python.org/library/argparse.html#module-argparse>
 [^plyWebsite]: (PLY Website)[http://www.dabeaz.com/ply/]
 
 // vim: set tw=75 ai: 
