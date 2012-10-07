@@ -5,8 +5,8 @@ type: :feature
 component: spiralweb
 release: v0.2
 reporter: Michael McDermott <michael@zion>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2012-10-04 18:08:33.071384 Z
 references: []
 
@@ -16,3 +16,7 @@ log_events:
   - Michael McDermott <michael@zion>
   - created
   - ""
+- - 2012-10-07 17:28:13.594903 Z
+  - Michael McDermott <michael@zion>
+  - closed with disposition fixed
+  - Did as much as I will do right this second.
