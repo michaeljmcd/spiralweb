@@ -171,7 +171,7 @@ application was invoked). Beyond this, we provide tangle and weave
 operations to actually perform the two major functions of a literate
 system.
 
-@code SpiralWeb class definitions 
+@code SpiralWeb class definitions [lang=python]
 class SpiralWeb():
     chunks = []
     baseDir = ''
@@ -203,7 +203,7 @@ the path parameter to be `None`. When this occurs, we assume that we need
 to read `stdin` to get the input. In either event, we load the input into a
 string, then parse it, returning the resultant `SpiralWeb` object.
 
-@code Alternate SpiralWeb creation functions
+@code Alternate SpiralWeb creation functions [lang=python]
 def parseSwFile(path):
     handle = None
 
@@ -247,7 +247,7 @@ Understanding that "output", in this context means to write a chunk's lines
 out to the location specified by the `out` option, if it exists, and to
 write them to `stdout`, if it does not.
 
-@code Tangle Method
+@code Tangle Method [lang=python]
 def tangle(self,chunks=None):
     outputs = {}
 
@@ -301,7 +301,7 @@ But, for the time being, we will write a hard-coded backed with a class
 structure meant to facilitate the automatic loading of derivors in the
 future.
 
-@code Weave Method
+@code Weave Method [lang=python]
 def weave(self, chunks=None):
     backend = PandocMarkdownBackend()
 
@@ -355,7 +355,7 @@ output sequence, we can dump those out alone.
 Our method will process the chunk list until we get this result, we then
 return it as a dictionary to the caller.
 
-@code Weave Method
+@code Weave Method [lang=python]
 def resolveDocumentation(self):
     documentation_chunks = {}
     last_doc = None
@@ -396,7 +396,7 @@ base backend will define each of these methods to simply return the text
 from the chunk as it is passed in. This is clearly not very useful, but it
 gives a good fallback.
 
-@code SpiralWeb class definitions
+@code SpiralWeb class definitions [lang=python]
 class SpiralWebBackend():
     def dispatchChunk(self, chunk):
         if isinstance(chunk, basestring):
@@ -435,7 +435,7 @@ II. If there is one or more terminal (i.e. a `@@doc` directive with an
 III. If none of the above apply, concatenate all output and write it to
 `stdout`.
 
-@code SpiralWebBackend Output Methods
+@code SpiralWebBackend Output Methods [lang=python]
 def output(self, topLevelDocs, chunksToOutput):
     terminalChunks = [x for w, x in topLevelDocs.items() \
                       if x.type == 'doc' and x.hasOutputPath()]
@@ -468,7 +468,7 @@ do no extra processing on them. Code lines, on the other hand, will require
 a little more work. We will format them for Markdown as delimited code
 blocks.
 
-@code SpiralWeb class definitions
+@code SpiralWeb class definitions [lang=python]
 class PandocMarkdownBackend(SpiralWebBackend):
     def formatDoc(self, chunk):
         lines = [self.dispatchChunk(x) for x in chunk.lines] 
@@ -501,7 +501,7 @@ references.
 We define both with a `dumpLines` method that will perform all resolutions
 and produce final output for the given chunk. 
 
-@code SpiralWeb chunk class definitions
+@code SpiralWeb chunk class definitions [lang=python]
 class SpiralWebChunk():
     lines = []
     options = {}
@@ -605,7 +605,7 @@ We will package both the lexer and the parser into a single file,
 `parser.py` and export a single function to return a list of objects,
 representing the list of all web files passed in.
 
-@code Lexer/Parser [out=spiralweb/parser.py]
+@code Lexer/Parser [out=spiralweb/parser.py,lang=python]
 import sys
 import os
 import ply.lex as lex
@@ -649,7 +649,7 @@ The only real points worthy of mention is the chunk reference whitespace
 must be retained on its way to the parser in order to preserve
 indentation.
 
-@code Lexer Class
+@code Lexer Class [lang=python]
 # Lexing definitions
 
 class SpiralWebLexer:
@@ -747,7 +747,7 @@ higher-level parser builders inefficient--they are all designed to make
 hard grammars simple. Along the way, they make valid assumptions, usually
 about whitespace, that seriously interfere with a truly simple grammar).
 
-@code Parser Class
+@code Parser Class [lang=python]
 # Parser definitions
 
 class SpiralWebParser:
@@ -906,7 +906,7 @@ We will implement the actions (i.e. whether to tangle, weave, or both)
 entirely to the application, which can call each web's interface at
 leisure.
 
-@code Parsing Interface Functions
+@code Parsing Interface Functions [lang=python]
 def parse_webs(input_strings):
     output = {}
     parser = SpiralWebParser()
@@ -1013,10 +1013,6 @@ advancements we would like to see in the next version:
 * Indexing--unlike noweb and funnelweb, we did not include indexing. The
   plan would be to add an `@@index` directive to the grammar that allows
   for web-wide and chunk-specific indexing.
-* Git-like command line syntax--keep the default behavior, but allow
-  specific operations to be run with a syntax like `spiralweb tangle
-  foo.sw` or `spiralweb weave foo.sw`. `argparse` provides this
-  functionality, so it ought not to be a difficult transition.
 * Allow external webs to be included in a web.
 
 ## References ##

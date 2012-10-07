@@ -1,7 +1,7 @@
 src: spiralweb.sw
 	spiralweb tangle spiralweb.sw && python spiralweb/main.py tangle tests.sw && mv *tab.py spiralweb/
 
-doc: spiralweb.sw
+doc/spiralweb.md: spiralweb.sw
 	spiralweb weave spiralweb.sw
 
 dist: src
