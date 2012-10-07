@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Allow running line numbers on code chunks
+desc: Create a way to persist line numbers across child chunks. So, if I define an output chunk A that references B, it would be preferable for B's listing to show the line numbers that it possesses within its parent
+type: :feature
+component: spiralweb
+release: 
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-09-22 05:48:12.307655 Z
+references: []
+
+id: e369b4ed9b55b8846f49a2c1229588e8afe75327
+log_events: 
+- - 2012-09-22 05:48:13.484905 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

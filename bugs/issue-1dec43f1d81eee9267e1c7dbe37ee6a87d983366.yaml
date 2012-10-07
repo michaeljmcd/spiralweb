@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Cleanup default help
+desc: Default help looks strange when printed from the command line.
+type: :feature
+component: spiralweb
+release: v0.2
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-10-04 18:08:33.071384 Z
+references: []
+
+id: 1dec43f1d81eee9267e1c7dbe37ee6a87d983366
+log_events: 
+- - 2012-10-04 18:08:33.989515 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

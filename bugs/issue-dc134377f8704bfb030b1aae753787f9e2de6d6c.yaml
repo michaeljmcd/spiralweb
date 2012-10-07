@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Create version flag
+desc: Add a --version option to spiralweb
+type: :bugfix
+component: spiralweb
+release: v0.2
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-10-04 17:58:00.372511 Z
+references: []
+
+id: dc134377f8704bfb030b1aae753787f9e2de6d6c
+log_events: 
+- - 2012-10-04 17:58:01.730011 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

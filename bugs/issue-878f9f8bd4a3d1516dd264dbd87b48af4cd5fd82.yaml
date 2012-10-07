@@ -1,0 +1,18 @@
+--- !ditz.rubyforge.org,2008-03-06/issue 
+title: Exceptions when directory not found
+desc: Exceptions are thrown (not caught and printed intelligently) when a target directory does not exist.
+type: :bugfix
+component: spiralweb
+release: v0.2
+reporter: Michael McDermott <michael@zion>
+status: :unstarted
+disposition: 
+creation_time: 2012-10-07 03:28:17.201395 Z
+references: []
+
+id: 878f9f8bd4a3d1516dd264dbd87b48af4cd5fd82
+log_events: 
+- - 2012-10-07 03:28:18.227823 Z
+  - Michael McDermott <michael@zion>
+  - created
+  - ""

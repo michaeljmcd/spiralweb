@@ -171,7 +171,7 @@ application was invoked). Beyond this, we provide tangle and weave
 operations to actually perform the two major functions of a literate
 system.
 
-@code SpiralWeb class definitions
+@code SpiralWeb class definitions 
 class SpiralWeb():
     chunks = []
     baseDir = ''
@@ -607,6 +607,7 @@ representing the list of all web files passed in.
 
 @code Lexer/Parser [out=spiralweb/parser.py]
 import sys
+import os
 import ply.lex as lex
 import ply.yacc as yacc
 import api
@@ -696,20 +697,41 @@ class SpiralWebLexer:
         print "Illegal character '%s' on line %s" % (t.value[0], t.lineno)
         t.lexer.skip(1)
 
-    def build(self,**kwargs):
-        self.lexer = lex.lex(module=self, **kwargs)
+    @<Lexical Analysis Utility Methods>
+@=
 
-    def lex(self, input):
-        token_list = []
+In order to ease the setup of our lexer, we will define the following
+methods. 
 
-        self.build()
-        self.lexer.input(input)
+`build` is a factory method of sorts. Most of the options are fairly self
+explanatory. The most important ones are `debug` and `optimize`, whose
+values may not be entirely obvious. 
 
-        while True:
-            token = self.lexer.token()
+PLY writes out `.out` files containing debugging information about the
+grammar. In production, we do not wish this to occur and so turn off
+"debugging".
 
-            if not token: break
-            token_list
+Similarly, we disable optimization because this polutes the target
+directory with Python files to represent a compiled lexer.
+
+If we do not set these two options, the result is that the application
+writes out junk files into the user's working directory.
+
+@code Lexical Analysis Utility Methods [lang=python]
+def build(self,**kwargs):
+    self.lexer = lex.lex(module=self, optimize=False, debug=False, **kwargs)
+
+def lex(self, input):
+    token_list = []
+
+    self.build()
+    self.lexer.input(input)
+
+    while True:
+        token = self.lexer.token()
+
+        if not token: break
+        token_list
 @=
 
 ### Parsing ###
@@ -851,18 +873,27 @@ class SpiralWebParser:
         '''property : TEXT EQUALS TEXT'''
         p[0] = {p[1] : p[3]}
 
-    def build(self,**kwargs):
-        self.lexer = SpiralWebLexer()
-        self.lexer.build()
-
-        self.parser = yacc.yacc(module=self, **kwargs)
-
-    def parse(self, input):
-        return self.parser.parse(input)
+    @<Parsing Factory Functions>
 
 @<Parsing Interface Functions>
 @=
 
+Our factory functions for the parser closely mirror the ones set up for the
+lexer and the definitions follow below. The options are less than clear,
+but are set using the same rationale as the lexer. Refer to the commentary
+in that section for more information.
+
+@code Parsing Factory Functions [lang=python]
+    def build(self,**kwargs):
+        self.lexer = SpiralWebLexer()
+        self.lexer.build()
+
+        self.parser = yacc.yacc(module=self, optimize=False, debug=False, **kwargs)
+
+    def parse(self, input):
+        return self.parser.parse(input)
+@=
+ 
 As we do not wish to leak implementation details to the interface, we will
 define a simple function to parse the input. In order to farther distance
 the parsing of a file from the basic input, we will define the function
@@ -910,7 +941,9 @@ import argparse
 import sys
 
 def main():
-    argparser = argparse.ArgumentParser(description='Literate programming system')
+    argparser = argparse.ArgumentParser(prog='spiralweb', description='Literate programming system')
+#argparser.add_argument('version', help='Print version')
+
     subparsers = argparser.add_subparsers(dest='command')
 
     tangle_parser = subparsers.add_parser('tangle', help='Extract source files from SpiralWeb literate webs')
@@ -923,12 +956,12 @@ def main():
 
     options = argparser.parse_args()
 
-    if len(options.files) == 0:
-        options.files.append(None)
-
     if options.command == 'help':
         argparser.print_help()
     else:
+        if len(options.files) == 0:
+            options.files.append(None)
+
         for path in options.files:
             web = api.parseSwFile(path)
 
@@ -951,7 +984,7 @@ from setuptools import setup, find_packages
 
 setup(
         name = 'spiralweb',
-        version = '0.1',
+        version = '0.2-BETA',
         packages = ['spiralweb'],
         description = 'A lightweight-markup based literate programming system',    
         author = 'Michael McDermott',
