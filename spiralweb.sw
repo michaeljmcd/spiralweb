@@ -963,12 +963,15 @@ def main():
             options.files.append(None)
 
         for path in options.files:
-            web = api.parseSwFile(path)
+            try:
+                web = api.parseSwFile(path)
 
-            if options.command == 'tangle':
-                web.tangle()
-            elif options.command == 'weave':
-                web.weave()
+                if options.command == 'tangle':
+                    web.tangle()
+                elif options.command == 'weave':
+                    web.weave()
+            except BaseException, e:
+                print "ERROR: " + str(e)
 
 if __name__ == '__main__':
     main()
