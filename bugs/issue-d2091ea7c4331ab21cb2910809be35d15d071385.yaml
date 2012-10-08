@@ -5,8 +5,8 @@ type: :bugfix
 component: spiralweb
 release: v0.2
 reporter: Michael McDermott <michael@zion>
-status: :unstarted
-disposition: 
+status: :closed
+disposition: :fixed
 creation_time: 2012-09-20 17:40:24.403328 Z
 references: []
 
@@ -16,3 +16,7 @@ log_events:
   - Michael McDermott <michael@zion>
   - created
   - ""
+- - 2012-10-08 03:52:39.714544 Z
+  - Michael McDermott <michael@zion>
+  - closed with disposition fixed
+  - Seems to have been fixed in latest build.
