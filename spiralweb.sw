@@ -942,7 +942,7 @@ import sys
 
 def main():
     argparser = argparse.ArgumentParser(prog='spiralweb', description='Literate programming system')
-    argparser.add_argument('--version', action='version', version='0.2-BETA')
+    argparser.add_argument('--version', action='version', version='0.2')
 
     subparsers = argparser.add_subparsers(dest='command')
 
@@ -987,7 +987,7 @@ from setuptools import setup, find_packages
 
 setup(
         name = 'spiralweb',
-        version = '0.2-BETA',
+        version = '0.2',
         packages = ['spiralweb'],
         description = 'A lightweight-markup based literate programming system',    
         author = 'Michael McDermott',

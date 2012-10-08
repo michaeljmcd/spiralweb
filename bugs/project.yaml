@@ -22,12 +22,16 @@ releases:
     - Marking an old release complete.
 - !ditz.rubyforge.org,2008-03-06/release 
   name: v0.2
-  status: :unreleased
-  release_time: 
+  status: :released
+  release_time: 2012-10-08 03:54:02.819513 Z
   log_events: 
   - - 2012-09-20 17:39:14.798756 Z
     - Michael McDermott <michael@zion>
     - created
+    - ""
+  - - 2012-10-08 03:54:02.819533 Z
+    - Michael McDermott <michael@zion>
+    - released
     - ""
 - !ditz.rubyforge.org,2008-03-06/release 
   name: v0.3
