@@ -992,9 +992,10 @@ setup(
         description = 'A lightweight-markup based literate programming system',    
         author = 'Michael McDermott',
         author_email = 'mmcdermott@@mad-computer-scientist.com',
-        url = 'https://gitorious.org/spiralweb',
+        url = 'https://github.com/michaeljmcd/spiralweb',
         keywords = ['literate programming', 'lp', 'markdown'],
         license = 'MIT',
+        install_requires = ['ply'],
         entry_points = {
             'console_scripts': [
                 'spiralweb = spiralweb.main:main'
