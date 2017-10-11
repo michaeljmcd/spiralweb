@@ -1,8 +1,9 @@
 # CHANGELOG
 
 ## [Unreleased]
-
+### Changed
 * Porting Spiralweb to Python 3.
+* Added bootstrapping calls to the Makefile.
 
 ## Version 0.2
 ### Added
