@@ -1,7 +1,7 @@
 @doc SpiralWeb [out=doc/spiralweb.md]
 % SpiralWeb--A Literate Programming System
 % Michael McDermott
-% April 08, 2012
+% October 11, 2017
 
 # SpiralWeb--A Literate Programming System #
 
@@ -41,7 +41,7 @@ the executable `spiralweb`.
 @code Man Page [out=doc/spiralweb.1.md,lang=markdown]
 % SPIRALWEB(1) SpiralWeb User Manuals
 % Michael McDermott
-% April 8, 2012
+% October 11, 2017
 
 # NAME
 
@@ -255,7 +255,7 @@ def tangle(self,chunks=None):
         if chunk.type == 'code':
             if chunk.name in outputs.keys():
                 outputs[chunk.name].lines += chunk.lines
-                outputs[chunk.name].options = dict(outputs[chunk.name].options.items() + chunk.options.items())
+                outputs[chunk.name].options = dict(list(outputs[chunk.name].options.items()) + list(chunk.options.items()))
             else:
                 outputs[chunk.name] = chunk
 
@@ -266,14 +266,14 @@ def tangle(self,chunks=None):
             if outputs[key].hasOutputPath():
                 outputs[key].writeOutput()
             else:
-                print outputs[key].dumpLines()
+                print(outputs[key].dumpLines())
     elif '*' in outputs.keys(): 
         content = outputs['*'].dumpLines()
 
         if outputs['*'].hasOutputPath():
             outputs['*'].writeOutput()
         else:
-            print content
+            print(content)
     elif len(terminalChunks) > 0:
         for chunk in terminalChunks:
             chunk.writeOutput()
@@ -399,7 +399,7 @@ gives a good fallback.
 @code SpiralWeb class definitions [lang=python]
 class SpiralWebBackend():
     def dispatchChunk(self, chunk):
-        if isinstance(chunk, basestring):
+        if isinstance(chunk, str):
             return chunk
         elif chunk.type == 'doc':
             return self.formatDoc(chunk)
@@ -446,13 +446,13 @@ def output(self, topLevelDocs, chunksToOutput):
                 if topLevelDocs[key].hasOutputPath():
                     self.writeOutChunk(topLevelDocs[key])
                 else:
-                    print self.dispatchChunk(topLevelDocs[key])
+                    print(self.dispatchChunk(topLevelDocs[key]))
     elif len(terminalChunks) > 0:
         for chunk in terminalChunks:
             self.writeOutChunk(chunk)
     else:
         for name, chunk in topLevelDocs.items():
-            print self.dispatchChunk(chunk)
+            print(self.dispatchChunk(chunk))
 
 def writeOutChunk(self, chunk):
     if not 'out' in chunk.options:
@@ -511,7 +511,7 @@ class SpiralWebChunk():
 
     def getChunk(self, name):
         for chunk in self.lines:
-            if not isinstance(chunk, basestring):
+            if not isinstance(chunk, str):
                 if chunk.name == name:
                     return chunk
                 elif chunk.getChunk(name) != None:
@@ -522,14 +522,14 @@ class SpiralWebChunk():
         self.parent = parent
 
         for line in self.lines:
-            if not isinstance(line, basestring):
+            if not isinstance(line, str):
                 line.setParent(parent)
 
     def dumpLines(self, indentLevel=''):
         output = ''
 
         for line in self.lines:
-            if isinstance(line, basestring):
+            if isinstance(line, str):
                 output += line
 
                 if line.find("\n") != -1:
@@ -553,7 +553,7 @@ class SpiralWebChunk():
             raise BaseException('No output path specified')
 
     def __add__(self, exp):
-        if isinstance(exp, basestring):
+        if isinstance(exp, str):
             for line in self.lines:
                 exp += line
             return exp
@@ -694,7 +694,7 @@ class SpiralWebLexer:
         return t
 
     def t_error(self, t):
-        print "Illegal character '%s' on line %s" % (t.value[0], t.lineno)
+        print("Illegal character '%s' on line %s" % (t.value[0], t.lineno))
         t.lexer.skip(1)
 
     @<Lexical Analysis Utility Methods>
@@ -759,7 +759,7 @@ class SpiralWebParser:
         self.build()
 
     def p_error(self, p):
-        print ("Syntax error at token %(name)s at line %(line)i" % \
+        print("Syntax error at token %(name)s at line %(line)i" % \
                 {"line": p.lineno, "name": p.type })
         yacc.errok()
 
@@ -867,7 +867,7 @@ class SpiralWebParser:
         if len(p) == 2:
            p[0] = p[1]
         else:
-           p[0] = dict(p[1].items() + p[3].items())
+           p[0] = dict(list(p[1].items()) + list(p[3].items()))
 
     def p_property(self, p):
         '''property : TEXT EQUALS TEXT'''
@@ -911,7 +911,7 @@ def parse_webs(input_strings):
     output = {}
     parser = SpiralWebParser()
 
-    for key, input in input_strings.iteritems():
+    for key, input in input_strings.items():
         output[key] = parser.parse(input)
 
     return output
@@ -942,7 +942,7 @@ import sys
 
 def main():
     argparser = argparse.ArgumentParser(prog='spiralweb', description='Literate programming system')
-    argparser.add_argument('--version', action='version', version='0.2')
+    argparser.add_argument('--version', action='version', version='0.3')
 
     subparsers = argparser.add_subparsers(dest='command')
 
@@ -970,8 +970,8 @@ def main():
                     web.tangle()
                 elif options.command == 'weave':
                     web.weave()
-            except BaseException, e:
-                print "ERROR: " + str(e)
+            except BaseException as e:
+                print("ERROR: " + str(e))
 
 if __name__ == '__main__':
     main()
@@ -987,7 +987,7 @@ from setuptools import setup, find_packages
 
 setup(
         name = 'spiralweb',
-        version = '0.2',
+        version = '0.3',
         packages = ['spiralweb'],
         description = 'A lightweight-markup based literate programming system',    
         author = 'Michael McDermott',
