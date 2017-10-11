@@ -999,7 +999,7 @@ setup(
         install_requires = ['ply'],
         entry_points = {
             'console_scripts': [
-                'spiralweb = spiralweb.main:main'
+                'spiralweb = spiralweb.__main__:main'
             ]},
         long_description = """\
 SpiralWeb is a literate programming system that uses lightweight text
