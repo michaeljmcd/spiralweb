@@ -18,4 +18,4 @@
 
 * Initial release.
 
-[Unreleased]: https://github.com/michaeljmcd/spiralweb/compare/...HEAD
+[Unreleased]: https://github.com/michaeljmcd/spiralweb/compare/master@{2017-10-10}...master
