@@ -155,9 +155,8 @@ other sections. Of note is the fact that, when we get around to making
 SpiralWeb fully extensible, `api` will be the public-facing aspect of the
 source.
 
-@code API Classes [out=spiralweb/api.py,lang=python]
+@code API Classes [out=spiralweb/model.py,lang=python]
 import sys
-import parser
 
 @<SpiralWeb chunk class definitions>
 @<SpiralWeb class definitions>
@@ -192,8 +191,6 @@ class SpiralWeb():
 
     @<Tangle Method>
     @<Weave Method>
-
-@<Alternate SpiralWeb creation functions>
 @=
 
 In order to create more separation between the command-line presentation
@@ -203,7 +200,11 @@ the path parameter to be `None`. When this occurs, we assume that we need
 to read `stdin` to get the input. In either event, we load the input into a
 string, then parse it, returning the resultant `SpiralWeb` object.
 
-@code Alternate SpiralWeb creation functions [lang=python]
+@code Alternate SpiralWeb creation functions [out=spiralweb/api.py,lang=python]
+import sys
+from .parser import parse_webs
+from .model import SpiralWeb
+
 def parseSwFile(path):
     handle = None
 
@@ -216,7 +217,7 @@ def parseSwFile(path):
     fileInput = handle.read()
     handle.close()
 
-    chunkList = parser.parse_webs({path: fileInput})[path]
+    chunkList = parse_webs({path: fileInput})[path]
 
     return SpiralWeb(chunks=chunkList)
 @=
@@ -610,7 +611,7 @@ import sys
 import os
 import ply.lex as lex
 import ply.yacc as yacc
-import api
+from .model import SpiralWebChunk, SpiralWebRef, SpiralWeb
 
 @<Lexer Class>
 @<Parser Class>
@@ -789,7 +790,7 @@ class SpiralWebParser:
                     | OPEN_PROPERTY_LIST
                     | CLOSE_PROPERTY_LIST
                     | EQUALS'''
-        doc = api.SpiralWebChunk()
+        doc = SpiralWebChunk()
         doc.type = 'doc'
         doc.name = ''
         doc.options = {}
@@ -798,7 +799,7 @@ class SpiralWebParser:
 
     def p_docdefn(self, p):
         '''docdefn : DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines'''
-        doc = api.SpiralWebChunk()
+        doc = SpiralWebChunk()
         doc.type = 'doc'
         doc.name = p[2].strip()
         doc.options = p[3]
@@ -808,7 +809,7 @@ class SpiralWebParser:
     def p_codedefn(self, p):
         '''codedefn : CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
                     '''
-        code = api.SpiralWebChunk()
+        code = SpiralWebChunk()
         code.type = 'code'
         code.name = p[2].strip()
         code.options = p[3]
@@ -832,7 +833,7 @@ class SpiralWebParser:
                     | COMMA
                     | EQUALS
                     | chunkref'''
-        doc = api.SpiralWebChunk()
+        doc = SpiralWebChunk()
         doc.type = 'doc'
         doc.name = ''
         doc.options = {}
@@ -841,7 +842,7 @@ class SpiralWebParser:
 
     def p_chunkref(self, p):
         '''chunkref : CHUNK_REFERENCE'''
-        p[0] = api.SpiralWebRef(p[1]['ref'], p[1]['indent'])
+        p[0] = SpiralWebRef(p[1]['ref'], p[1]['indent'])
 
     def p_optionalpropertylist(self, p):
         '''optionalpropertylist : propertylist 
@@ -934,8 +935,8 @@ many good command line utilities, like `git` or `svn`. Towards that end, we
 will use the subparser ability of `argparse` to build parsers to handle
 each of our commands. We can then act upon what is presented us.
 
-@code Main [out=spiralweb/main.py,lang=python]
-import api
+@code Main [out=spiralweb/__main__.py,lang=python]
+from spiralweb.api import parseSwFile
 import parser
 import argparse
 import sys
@@ -964,7 +965,7 @@ def main():
 
         for path in options.files:
             try:
-                web = api.parseSwFile(path)
+                web = parseSwFile(path)
 
                 if options.command == 'tangle':
                     web.tangle()
