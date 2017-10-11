@@ -4,7 +4,6 @@ WEAVE = $(PYTHON_INTERPRETER) spiralweb/main.py weave
 
 src: bootstrap spiralweb.sw
 	$(TANGLE) spiralweb.sw
-#&& $(TANGLE) tests.sw
 
 doc/spiralweb.md: spiralweb.sw
 	$(WEAVE) spiralweb.sw
