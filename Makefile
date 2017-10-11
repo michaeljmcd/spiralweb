@@ -1,10 +1,13 @@
 PYTHON_INTERPRETER = python3
+TANGLE = $(PYTHON_INTERPRETER) spiralweb/main.py tangle
+WEAVE = $(PYTHON_INTERPRETER) spiralweb/main.py weave
 
-src: spiralweb.sw
-	spiralweb tangle spiralweb.sw && python spiralweb/main.py tangle tests.sw
+src: bootstrap spiralweb.sw
+	$(TANGLE) spiralweb.sw
+#&& $(TANGLE) tests.sw
 
 doc/spiralweb.md: spiralweb.sw
-	spiralweb weave spiralweb.sw
+	$(WEAVE) spiralweb.sw
 
 dist: src
 	$(PYTHON_INTERPRETER) setup.py bdist_egg
@@ -16,3 +19,6 @@ doc/spiralweb.html: doc/spiralweb.md
 
 bootstrap: 
 	$(PYTHON_INTERPRETER) bootstrap.py spiralweb.sw
+
+install: bootstrap dist
+	$(PYTHON_INTERPRETER) setup.py install
