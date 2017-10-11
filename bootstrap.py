@@ -46,7 +46,7 @@ def t_NEWLINE(t):
     return t
 
 def t_error(t):
-    print "Illegal character '%s' on line %s" % (t.value[0], t.lineno)
+    print("Illegal character '%s' on line %s" % (t.value[0], t.lineno))
     t.lexer.skip(1)
 
 # Parser definitions
@@ -171,14 +171,14 @@ class SpiralWeb():
                 if outputs[key].hasOutputPath():
                     outputs[key].writeOutput()
                 else:
-                    print outputs[key].dumpLines()
+                    print(outputs[key].dumpLines())
         elif '*' in outputs.keys(): 
             content = outputs[key].dumpLines()
 
             if outputs['*'].hasOutputPath():
                 outputs['*'].writeOutput()
             else:
-                print content
+                print(content)
         elif len(terminalChunks) > 0:
             for chunk in terminalChunks:
                 chunk.writeOutput()
