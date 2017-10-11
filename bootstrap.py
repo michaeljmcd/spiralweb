@@ -60,7 +60,7 @@ class SpiralWebChunk():
 
     def getChunk(self, name):
         for chunk in self.lines:
-            if not isinstance(chunk, basestring):
+            if not isinstance(chunk, str):
                 if chunk.name == name:
                     return chunk
                 elif chunk.getChunk(name) != None:
@@ -71,14 +71,14 @@ class SpiralWebChunk():
         self.parent = parent
 
         for line in self.lines:
-            if not isinstance(line, basestring):
+            if not isinstance(line, str):
                 line.setParent(parent)
 
     def dumpLines(self, indentLevel=''):
         output = ''
 
         for line in self.lines:
-            if isinstance(line, basestring):
+            if isinstance(line, str):
                 output += line
 
                 if line.find("\n") != -1:
@@ -102,7 +102,7 @@ class SpiralWebChunk():
             raise BaseException('No output path specified')
 
     def __add__(self, exp):
-        if isinstance(exp, basestring):
+        if isinstance(exp, str):
             for line in self.lines:
                 exp += line
             return exp
@@ -160,7 +160,7 @@ class SpiralWeb():
             if chunk.type == 'code':
                 if chunk.name in outputs.keys():
                     outputs[chunk.name].lines += chunk.lines
-                    outputs[chunk.name].options = dict(outputs[chunk.name].options.items() + chunk.options.items())
+                    outputs[chunk.name].options = dict(list(outputs[chunk.name].options.items()) + list(chunk.options.items()))
                 else:
                     outputs[chunk.name] = chunk
 
@@ -292,7 +292,7 @@ def p_propertysequence1(p):
     if len(p) == 2:
        p[0] = p[1]
     else:
-       p[0] = dict(p[1].items() + p[3].items())
+       p[0] = dict(list(p[1].items()) + list(p[3].items()))
 
 def p_property(p):
     '''property : TEXT EQUALS TEXT'''
