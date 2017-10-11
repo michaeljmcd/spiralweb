@@ -1,5 +1,9 @@
 # CHANGELOG #
 
+## Unreleased
+
+* Porting Spiralweb to Python 3.
+
 ## Version 0.2
 
 * Created inheritance process for chunk parameters.
