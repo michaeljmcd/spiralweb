@@ -609,6 +609,7 @@ representing the list of all web files passed in.
 @code Lexer/Parser [out=spiralweb/parser.py,lang=python]
 import sys
 import os
+import io
 import ply.lex as lex
 import ply.yacc as yacc
 from .model import SpiralWebChunk, SpiralWebRef, SpiralWeb
@@ -907,13 +908,24 @@ We will implement the actions (i.e. whether to tangle, weave, or both)
 entirely to the application, which can call each web's interface at
 leisure.
 
+The one key wrinkle to handle here is that ply often prints text to stderr
+that we do not need. It looks like this should be fixed in Ply 3.11, which
+has not yet been released. In the meantime, we will capture and discard
+what it writes to standard error.
+
 @code Parsing Interface Functions [lang=python]
 def parse_webs(input_strings):
     output = {}
+
+    stderr_ = sys.stderr
+    sys.stderr = io.StringIO("")
+
     parser = SpiralWebParser()
 
     for key, input in input_strings.items():
         output[key] = parser.parse(input)
+
+    sys.stderr = stderr_
 
     return output
 @=
