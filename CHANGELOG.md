@@ -5,6 +5,10 @@
 * Porting Spiralweb to Python 3.
 * Added bootstrapping calls to the Makefile.
 
+### Fixed
+
+* Suppressed chatter from PLY about creating parsetab.
+
 ## Version 0.2
 ### Added
 
