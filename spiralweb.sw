@@ -170,8 +170,73 @@ type Lexer struct {
 
 func NewLexer(inputStream *bufio.Reader) *Lexer {
     result := new(Lexer)
-    result.inputStream := inputStream
+    //result.inputStream := inputStream
 
     return result
 }
 @=
+
+## The Command Line Application ##
+
+In the previous sections, we defined the command-line syntax for the
+invocation of `spiralweb`. Here we take that specification and combine it
+with the APIs we defined previously to put it all together and create a
+usable command line application.
+
+We will use Golang's `flag` package ^[flagpackage] to parse out the command line
+parameters. The general usage of this package is to first define the flags, then
+run the parser, as we see here.
+
+@code CLI [out=spiralweb.go,lang=go]
+package main
+
+import (
+    "flag"
+    "fmt"
+    "os"
+)
+
+func main() {
+    @<Flag Definitions>
+    @<CLI Parsing>
+    @<Tangle Command Execution>
+}
+@=
+
+We will begin by defining the `tangle` subcommand and then look at our
+implementation of it.
+
+@code Flag Definitions [lang=go]
+tangleCommand := flag.NewFlagSet("tangle", flag.ExitOnError)
+tangleCommand.String("chunk", "", "Specifies one or more chunks to be tangled.")
+tangleCommand.Bool("force", false, "Forces output to be written out.")
+@=
+
+@code Tangle Command Execution [lang=go]
+if tangleCommand.Parsed() {
+    fmt.Println("You wanna tangle?")
+}
+@=
+
+Now that we have defined our flags and their consequences we turn to parsing.
+In an ideal world, we would define our subcommands and let the library sort out
+the rest. We do not live in an ideal world. The `flag` package allows multiple
+independent flag sets to be defined but does not, at this writing, automatically
+determine which one to run ^[subcommand-detection].
+
+Therefore, now that we have defined the command sets, we me must detect which to
+use and then let the library handle it.
+
+@code CLI Parsing [lang=go]
+switch os.Args[1] {
+    case "tangle":
+        tangleCommand.Parse(os.Args[2:])
+}
+@=
+
+## References
+
+[^flagpackage]: <https://golang.org/pkg/flag/>
+[^subcommand-detection]: <https://stackoverflow.com/questions/24504024/defining-independent-flagsets-in-golang>
+
+// vim: set tw=75 ai: 
