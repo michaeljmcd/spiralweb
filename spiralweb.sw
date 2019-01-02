@@ -228,6 +228,11 @@ Therefore, now that we have defined the command sets, we me must detect which to
 use and then let the library handle it.
 
 @code CLI Parsing [lang=go]
+if len(os.Args) < 2 {
+    fmt.Println("You need help.")
+    return
+}
+
 switch os.Args[1] {
     case "tangle":
         tangleCommand.Parse(os.Args[2:])
