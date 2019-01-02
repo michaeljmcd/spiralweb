@@ -197,6 +197,7 @@ import (
 func main() {
     @<Logging Setup>
     @<Flag Definitions>
+    @<Help Functions>
     @<CLI Parsing>
     @<Tangle Command Execution>
 }
@@ -230,13 +231,41 @@ use and then let the library handle it.
 
 @code CLI Parsing [lang=go]
 if len(os.Args) < 2 {
-    fmt.Println("You need help.")
+    printUsage()
     return
 }
 
 switch os.Args[1] {
     case "tangle":
         tangleCommand.Parse(os.Args[2:])
+    case "help":
+        printUsage()
+}
+@=
+
+### Help Subcommand ###
+
+The `help` subcommand does exactly what you would expect from the name: it
+prints out usage information for the main commands. No real options are needed
+for this command, so the flag definition is pretty simple.
+
+@code Flag Definitions [lang=go]
+helpCommand := flag.NewFlagSet("help", flag.ExitOnError)
+@=
+
+The implementation will then rely on the base package to print out usage.
+
+@code Help Functions
+printUsage := func() {
+    fmt.Fprintf(os.Stderr, "Usage of %s:\n\n", os.Args[0])
+
+    flag.PrintDefaults()
+
+    fmt.Fprintf(os.Stderr, "tangle\n")
+    tangleCommand.PrintDefaults()
+
+    fmt.Fprintf(os.Stderr, "help\n")
+    helpCommand.PrintDefaults()
 }
 @=
 
