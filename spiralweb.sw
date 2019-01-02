@@ -169,10 +169,7 @@ type Lexer struct {
 }
 
 func NewLexer(inputStream *bufio.Reader) *Lexer {
-    result := new(Lexer)
-    //result.inputStream := inputStream
-
-    return result
+    return &Lexer{inputStream: inputStream}
 }
 @=
 
@@ -194,14 +191,18 @@ import (
     "flag"
     "fmt"
     "os"
+    "log"
 )
 
 func main() {
+    @<Logging Setup>
     @<Flag Definitions>
     @<CLI Parsing>
     @<Tangle Command Execution>
 }
 @=
+
+### Tangling Subcommand ###
 
 We will begin by defining the `tangle` subcommand and then look at our
 implementation of it.
@@ -214,7 +215,7 @@ tangleCommand.Bool("force", false, "Forces output to be written out.")
 
 @code Tangle Command Execution [lang=go]
 if tangleCommand.Parsed() {
-    fmt.Println("You wanna tangle?")
+    log.Println("You wanna tangle?")
 }
 @=
 
@@ -237,6 +238,16 @@ switch os.Args[1] {
     case "tangle":
         tangleCommand.Parse(os.Args[2:])
 }
+@=
+
+### Logging Configuration ###
+
+We focused on the actual interface in the previous sections. There is one slight
+bit of book-keeping that we need to address, which is configuring logging.
+Logging was used in the previous sections but bears a bit of setup.
+
+@code Logging Setup
+log := log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)
 @=
 
 ## References
