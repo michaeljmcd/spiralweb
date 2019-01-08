@@ -260,7 +260,15 @@ func NewLexer(inputStream *io.Reader) *Lexer {
 }
 @=
 
-The scanning method is fairly straightforward.
+The scanning method is fairly straightforward. Many of our token are single
+characters, so we can represent detect them with simple conditional checks that
+return the token that we would expect. There are two main cases besides this,
+which we will discuss below, namely parsing out raw text for the output (as is
+the majority of both documentation and code chunks) and tokenizing the various
+control sequences.
+
+The method below demonstrates the basic token detection, with the other cases to
+follow.
 
 @code Scanning Implementation
 func (lexer *Lexer) Scan() (lexeme Lexeme) {
@@ -280,6 +288,14 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
 
     if nextCharacter == ']' {
         return Lexeme{lexemeType: CLOSE_PROPERTY_LIST, value: string(nextCharacter)}
+    }
+
+    if nextCharacter == '=' {
+        return Lexeme{lexemeType: EQUALS, value: string(nextCharacter)}
+    }
+
+    if nextCharacter == '\n' {
+        return Lexeme{lexemeType: NEWLINE, value: string(nextCharacter)}
     }
 
     return Lexeme{lexemeType: EOF, value: ""} //TODO: fixme
