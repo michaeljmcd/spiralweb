@@ -272,7 +272,7 @@ follow.
 
 @code Scanning Implementation
 func (lexer *Lexer) Scan() (lexeme Lexeme) {
-    nextCharacter := lexer.read()
+    nextCharacter := lexer.Read()
 
     if nextCharacter == eof {
         return Lexeme{lexemeType: EOF, value: ""}
@@ -298,16 +298,34 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
         return Lexeme{lexemeType: NEWLINE, value: string(nextCharacter)}
     }
 
+    @<Lex Directives>
+
     return Lexeme{lexemeType: EOF, value: ""} //TODO: fixme
 }
 
 @<IO Helpers>
 @=
 
+The first of the cases we were examining is detecting one of the control
+sequences that begins with the `@@` symbol. Here we find that there are several
+possiblities for what the full token could be.
+
+@code Lex Directives
+if nextCharacter == '@@' {
+    if lexer.Peek() == '@@' {
+        lexer.Read()
+        return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@"}
+    }
+}
+@=
+
+Throughout the above code, we have made use of a few wrapper functions that make
+IO a little nicer as we are going through. We define these functions below.
+
 @code IO Helpers
 var eof = rune(0)
 
-func (lexer *Lexer) read() rune {
+func (lexer *Lexer) Read() rune {
     char, _, error := lexer.inputStream.ReadRune()
 
     if error != nil {
@@ -315,6 +333,17 @@ func (lexer *Lexer) read() rune {
     }
 
     return char
+}
+
+func (lexer *Lexer) Peek() rune {
+    rune, _, err := lexer.inputStream.ReadRune()
+
+    if err != nil {
+        return eof
+    }
+
+    lexer.inputStream.UnreadRune()
+    return rune
 }
 @=
 
