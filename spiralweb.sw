@@ -140,7 +140,20 @@ In order to parse a web, we will be handrolling a lexer and parser, using the
 ideas put forth by Rob Pike and further discussed by Ben Johnson
 ^[handwrittenparsers]. 
 
-The goal of any lexical analysis is to produce a stream of tokens. 
+#### Tokens ####
+
+The goal of any lexical analysis is to produce a stream of tokens. We define
+this fairly simply as a type with a corresponding bit of text. 
+
+@code Lexeme Struct Definition
+type Lexeme struct {
+    lexemeType LexemeType
+    value string
+}
+@=
+
+The type is just an integer value that indicates the type of the token. The
+tokens that we will recognize are listed below.
 
 @code Lexer Type Definitions
 type LexemeType int
@@ -162,11 +175,78 @@ const (
     TEXT
 )
 
-type Lexeme struct {
-    lexemeType LexemeType
-    value string
-}
+@<Lexeme Struct Definition>
+@=
 
+Most of these should be fairly self explanatory. Nonetheless, we will list out
+the regular expressions that define each of these. Note that our implementation
+does not actually use regular expressions to perform lexical analysis, they are
+simply a handy shorthand to describe what makes a valid instance of each value.
+
+`ILLEGAL` 
+
+:   A sentinel value to be returned whenever an invalid token is found. For,
+    example, let us say that we hit an unescaped `@cdoe`. This is not a valid
+    directive and will trigger an error.
+
+`EOF`
+
+:   A sentinel value indicating the end of an input stream.
+
+`DOC_DIRECTIVE`
+
+:   An opening to a directive used to mark the beginning of documentation. The
+    only valid value is `@doc`.
+
+`CODE_DIRECTIVE`
+
+:   A directive indicating the beginning of a code section. Only accepted by
+    `@code`.
+
+`CODE_END_DIRECTIVE`
+
+:   The end delimeter for a code block. Should be comprised of `@=`.
+
+`OPEN_PROPERTY_LIST`
+
+:   The opening of a list of properties. These are used in code blocks to allow
+    hints to be passed to the tangling and weaving engines. An example might be
+    `[lang=go]`. The value is `[`.
+
+`CLOSE_PROPERTY_LIST`
+
+:   Defined by `]`, this is the ending of a list of properties as described in
+    the previous definition.
+
+`EQUALS`
+
+:   The equals sign, used in property lists as above. Defined as `=`.
+
+`COMMA`
+
+:   The comma symbol, defined as `,`. Used in property lists as above.
+
+`AT_DIRECTIVE`
+
+:   Because `@` is used as a part of many directives in SpiralWeb, the at
+    directive (specified as `@@`) is simply a way to escape the at symbol.
+
+`CHUNK_REFERENCE`
+
+:   The directive used inside code chunks to indicate that another chunk should
+    be inserted at a given location in the output. It is defined as `@<TEXT...>`.
+
+`NEWLINE`
+
+:   It is what it says on the tin. Either `\r` or `\r\n`.
+
+`TEXT`
+
+:   A catch-all for other text. Used in both documentation and code portions.
+
+#### Analyzing the Input Stream ####
+
+@code Lexer Type Definitions
 type Lexer struct {
     inputStream *bufio.Reader
 }
@@ -216,7 +296,7 @@ func (lexer *Lexer) read() rune {
 }
 @=
 
-### The Top-Level File ###
+#### The Top-Level File ####
 
 @code SpiralWeb Lexer [out=lexer.go,lang=go]
 package main
