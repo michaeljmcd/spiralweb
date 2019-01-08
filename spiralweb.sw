@@ -129,16 +129,20 @@ help:
 
 ## Parsing a Web ##
 
+The language of SpiralWeb was specified in the previous section, which also
+included the end-user documentation. With that in mind, we will now turn our
+attention to the process of parsing a web, from which we will be able to readily
+implement the operations in which we are interested.
+
+### Lexical Analysis ###
+
 In order to parse a web, we will be handrolling a lexer and parser, using the
-ideas put forth by Rob Pike.
+ideas put forth by Rob Pike and further discussed by Ben Johnson
+^[handwrittenparsers]. 
 
-@code SpiralWeb Lexer [out=lexer.go,lang=go]
-package main
+The goal of any lexical analysis is to produce a stream of tokens. 
 
-import (
-    "bufio"
-)
-
+@code Lexer Type Definitions
 type LexemeType int
 
 const (
@@ -165,12 +169,57 @@ type Lexeme struct {
 
 type Lexer struct {
     inputStream *bufio.Reader
-    output chan Lexeme
 }
 
-func NewLexer(inputStream *bufio.Reader) *Lexer {
-    return &Lexer{inputStream: inputStream}
+func NewLexer(inputStream *io.Reader) *Lexer {
+    return &Lexer{inputStream: bufio.NewReader(*inputStream)}
 }
+@=
+
+@code Scanning Implementation
+func (lexer *Lexer) Scan() (lexeme Lexeme) {
+    nextCharacter := lexer.read()
+
+    if nextCharacter == eof {
+        return Lexeme{lexemeType: EOF, value: ""}
+    }
+
+    if nextCharacter == ',' {
+        return Lexeme{lexemeType: COMMA, value: string(nextCharacter)}
+    }
+
+    return Lexeme{lexemeType: EOF, value: ""} //TODO: fixme
+}
+
+@<IO Helpers>
+@=
+
+@code IO Helpers
+var eof = rune(0)
+
+func (lexer *Lexer) read() rune {
+    char, _, error := lexer.inputStream.ReadRune()
+
+    if error != nil {
+        return eof
+    }
+
+    return char
+}
+@=
+
+### The Top-Level File ###
+
+@code SpiralWeb Lexer [out=lexer.go,lang=go]
+package main
+
+import (
+    "io"
+    "bufio"
+)
+
+@<Lexer Type Definitions>
+@<Scanning Implementation>
 @=
 
 ## The Command Line Application ##
@@ -253,5 +302,6 @@ log := log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)
 
 [^flagpackage]: <https://golang.org/pkg/flag/>
 [^subcommand-detection]: <https://stackoverflow.com/questions/24504024/defining-independent-flagsets-in-golang>
+[^handwrittenparsers]: <https://blog.gopheracademy.com/advent-2014/parsers-lexers/>
 
-// vim: set tw=75 ai: 
+// vim: set tw=80 ai: 
