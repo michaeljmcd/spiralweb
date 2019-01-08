@@ -246,6 +246,10 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 
 #### Analyzing the Input Stream ####
 
+The entrypoint into the lexical analysis will be a structure that contains all
+of the state of the lexer and the operations will operate on it. At this point,
+the only state will be the buffered IO reader that wraps the input stream.
+
 @code Lexer Type Definitions
 type Lexer struct {
     inputStream *bufio.Reader
@@ -255,6 +259,8 @@ func NewLexer(inputStream *io.Reader) *Lexer {
     return &Lexer{inputStream: bufio.NewReader(*inputStream)}
 }
 @=
+
+The scanning method is fairly straightforward.
 
 @code Scanning Implementation
 func (lexer *Lexer) Scan() (lexeme Lexeme) {
