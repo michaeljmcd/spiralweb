@@ -320,7 +320,9 @@ if nextCharacter == '@@' {
 @=
 
 Throughout the above code, we have made use of a few wrapper functions that make
-IO a little nicer as we are going through. We define these functions below.
+IO a little nicer as we are going through. We define these functions below. The
+big reason for these definitions is to allow all of the lexing to be done with
+Go runes instead of raw bytes.
 
 @code IO Helpers
 var eof = rune(0)
