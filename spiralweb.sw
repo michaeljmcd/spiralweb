@@ -186,7 +186,7 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 `ILLEGAL` 
 
 :   A sentinel value to be returned whenever an invalid token is found. For,
-    example, let us say that we hit an unescaped `@cdoe`. This is not a valid
+    example, let us say that we hit an unescaped `@@cdoe`. This is not a valid
     directive and will trigger an error.
 
 `EOF`
@@ -228,13 +228,13 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 
 `AT_DIRECTIVE`
 
-:   Because `@` is used as a part of many directives in SpiralWeb, the at
-    directive (specified as `@@`) is simply a way to escape the at symbol.
+:   Because `@@` is used as a part of many directives in SpiralWeb, the at
+    directive (specified as `@@@@`) is simply a way to escape the at symbol.
 
 `CHUNK_REFERENCE`
 
 :   The directive used inside code chunks to indicate that another chunk should
-    be inserted at a given location in the output. It is defined as `@<TEXT...>`.
+    be inserted at a given location in the output. It is defined as `@@<TEXT...>`.
 
 `NEWLINE`
 
