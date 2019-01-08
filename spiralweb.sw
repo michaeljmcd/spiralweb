@@ -304,6 +304,9 @@ func (lexer *Lexer) read() rune {
 
 #### The Top-Level File ####
 
+All of the lexical analysis will be wrapped up in a single source file, which we
+sketch out here.
+
 @code SpiralWeb Lexer [out=lexer.go,lang=go]
 package main
 
