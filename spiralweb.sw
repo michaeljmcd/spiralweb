@@ -188,6 +188,14 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
         return Lexeme{lexemeType: COMMA, value: string(nextCharacter)}
     }
 
+    if nextCharacter == '[' {
+        return Lexeme{lexemeType: OPEN_PROPERTY_LIST, value: string(nextCharacter)}
+    }
+
+    if nextCharacter == ']' {
+        return Lexeme{lexemeType: CLOSE_PROPERTY_LIST, value: string(nextCharacter)}
+    }
+
     return Lexeme{lexemeType: EOF, value: ""} //TODO: fixme
 }
 
