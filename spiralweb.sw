@@ -188,18 +188,21 @@ run the parser, as we see here.
 package main
 
 import (
-    "flag"
-    "fmt"
+    "github.com/urfave/cli" 
     "os"
     "log"
 )
 
 func main() {
     @<Logging Setup>
+
+    app := cli.NewApp()
+    app.Name = "spiralweb"
+    app.Usage = "Literate programming in a language agnostic fashion with lightweight markup languages."
+
     @<Flag Definitions>
-    @<Help Functions>
-    @<CLI Parsing>
-    @<Tangle Command Execution>
+
+    app.Run(os.Args)
 }
 @=
 
@@ -209,63 +212,30 @@ We will begin by defining the `tangle` subcommand and then look at our
 implementation of it.
 
 @code Flag Definitions [lang=go]
-tangleCommand := flag.NewFlagSet("tangle", flag.ExitOnError)
-tangleCommand.String("chunk", "", "Specifies one or more chunks to be tangled.")
-tangleCommand.Bool("force", false, "Forces output to be written out.")
-@=
+app.Commands = []cli.Command {
+    {
+        Name: "tangle",
+        Usage: "Extract source code from a spiral web.",
+        Flags: []cli.Flag {
+            cli.BoolTFlag {
+                Name: "force, f",
+                Usage: "Forces output to be written, even if there are no changes.",
+            },
+            cli.StringFlag {
+                Name: "chunk, c",
+                Usage: "Specifies chunk to tangle.",
+            },
+        },
+        Action: func(context *cli.Context) error {
+            log.Println("You wanna tangle?")
 
-@code Tangle Command Execution [lang=go]
-if tangleCommand.Parsed() {
-    log.Println("You wanna tangle?")
-}
-@=
+            if context.Bool("force") {
+                log.Println("Forcing output.")
+            }
 
-Now that we have defined our flags and their consequences we turn to parsing.
-In an ideal world, we would define our subcommands and let the library sort out
-the rest. We do not live in an ideal world. The `flag` package allows multiple
-independent flag sets to be defined but does not, at this writing, automatically
-determine which one to run ^[subcommand-detection].
-
-Therefore, now that we have defined the command sets, we me must detect which to
-use and then let the library handle it.
-
-@code CLI Parsing [lang=go]
-if len(os.Args) < 2 {
-    printUsage()
-    return
-}
-
-switch os.Args[1] {
-    case "tangle":
-        tangleCommand.Parse(os.Args[2:])
-    case "help":
-        printUsage()
-}
-@=
-
-### Help Subcommand ###
-
-The `help` subcommand does exactly what you would expect from the name: it
-prints out usage information for the main commands. No real options are needed
-for this command, so the flag definition is pretty simple.
-
-@code Flag Definitions [lang=go]
-helpCommand := flag.NewFlagSet("help", flag.ExitOnError)
-@=
-
-The implementation will then rely on the base package to print out usage.
-
-@code Help Functions
-printUsage := func() {
-    fmt.Fprintf(os.Stderr, "Usage of %s:\n\n", os.Args[0])
-
-    flag.PrintDefaults()
-
-    fmt.Fprintf(os.Stderr, "tangle\n")
-    tangleCommand.PrintDefaults()
-
-    fmt.Fprintf(os.Stderr, "help\n")
-    helpCommand.PrintDefaults()
+            return nil
+        },
+    },
 }
 @=
 
