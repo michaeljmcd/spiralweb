@@ -272,31 +272,45 @@ package main
 
 import "testing"
 import "strings"
-//import "fmt"
-import "container/list"
 
 func TestSimpleTokens(t *testing.T) {
     input := `,
 [
 ]
 =`
+    expectedTokens := []Lexeme {
+        Lexeme{lexemeType: COMMA, value: ","},
+        Lexeme{lexemeType: NEWLINE, value: "\n"},
+        Lexeme{lexemeType: OPEN_PROPERTY_LIST, value: "["},
+        Lexeme{lexemeType: NEWLINE, value: "\n"},
+        Lexeme{lexemeType: CLOSE_PROPERTY_LIST, value: "]"},
+        Lexeme{lexemeType: NEWLINE, value: "\n"},
+        Lexeme{lexemeType: EQUALS, value: "="},
+        Lexeme{lexemeType: EOF, value: ""},
+    }
 
     lexer := NewLexer(strings.NewReader(input))
-    tokens := list.New()
+    i := 0
 
     var token Lexeme
     for {
         token = lexer.Scan()
-        //fmt.Printf("Received token: %+v\n", token)
-        tokens.PushBack(token)
+
+        if token != expectedTokens[i] {
+            t.Errorf("Unexpected token found. Expected: %+v, got %+v", expectedTokens[i], token)
+            break
+        }
+
+        if token.lexemeType == ILLEGAL {
+            t.Errorf("Illegal input detected. %+v", token)
+            break
+        }
 
         if token.lexemeType == EOF || token.lexemeType == ILLEGAL {
             break
         }
-    }
 
-    if tokens.Len() != 8 {
-        t.Errorf("Received invalid number of tokens. Expected 8 and got %d", tokens.Len())
+        i++
     }
 }
 @=
