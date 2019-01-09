@@ -255,8 +255,48 @@ type Lexer struct {
     inputStream *bufio.Reader
 }
 
-func NewLexer(inputStream *io.Reader) *Lexer {
-    return &Lexer{inputStream: bufio.NewReader(*inputStream)}
+func NewLexer(inputStream io.Reader) *Lexer {
+    return &Lexer{inputStream: bufio.NewReader(inputStream)}
+}
+@=
+
+We will implement a `Scan` function against this structure that will be
+responsible for returning the next token, `INVALID` if an error is reached or
+`EOF` if the end of input is reached. It behooves us, then, to validate these
+semantics with some test code. We will start with some simple happy path
+examples and then proceed to some nastier cases.
+
+@code Semantic Analysis Tests [out=lexer_test.go,lang=go]
+package main
+
+import "testing"
+import "strings"
+import "fmt"
+import "container/list"
+
+func TestSimpleTokens(t *testing.T) {
+    input := `,
+[
+]
+=`
+
+    lexer := NewLexer(strings.NewReader(input))
+    tokens := list.New()
+
+    var token Lexeme
+    for {
+        token = lexer.Scan()
+        fmt.Printf("Received token: %+v\n", token)
+        tokens.PushBack(token)
+
+        if token.lexemeType == EOF || token.lexemeType == ILLEGAL {
+            break
+        }
+    }
+
+    if tokens.Len() != 8 {
+        t.Errorf("Received invalid number of tokens. Expected 8 and got %d", tokens.Len())
+    }
 }
 @=
 
@@ -299,8 +339,9 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
     }
 
     @<Lex Directives>
+    @<Consume Text>
 
-    return Lexeme{lexemeType: EOF, value: ""} //TODO: fixme
+    return Lexeme{lexemeType: ILLEGAL, value: ""} //TODO: fixme
 }
 
 @<IO Helpers>
@@ -308,7 +349,8 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
 
 The first of the cases we were examining is detecting one of the control
 sequences that begins with the `@@` symbol. Here we find that there are several
-possiblities for what the full token could be.
+possiblities for what the full token could be. It could be `DOC_DIRECTIVE`,
+`CODE_DIRECTIVE`, `CODE_END_DIRECTIVE`, `AT_DIRECTIVE` or `CHUNK_REFERENCE`.
 
 @code Lex Directives
 if nextCharacter == '@@' {
@@ -317,6 +359,14 @@ if nextCharacter == '@@' {
         return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@"}
     }
 }
+@=
+
+TODO: FINISHME
+
+With the control statements handled, 
+
+@code Consume Text
+// TODO
 @=
 
 Throughout the above code, we have made use of a few wrapper functions that make
