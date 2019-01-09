@@ -686,6 +686,25 @@ recognized by SpiralWeb.
     propertysequence1 → property | propertysequence1 COMMA property
     property → TEXT EQUALS TEXT
 
+Using the grammar as a specification, we can specify some test cases based on
+what should and should not be accepted by the grammar.
+
+@code Parser Tests [out=parser_test.go,lang=go]
+package main
+
+import "testing"
+@=
+
+#### Parse Table ####
+
+We will parse this language with an LL(1) parser, handspun in Go. Before we get
+too deep into the actual parsing logic, we will define a parsing table based on
+the grammar specified above.
+
+@code Parse Table 
+//const parseTable = map[]
+@=
+
 ## The Command Line Application ##
 
 In the previous sections, we defined the command-line syntax for the
