@@ -330,6 +330,9 @@ func TestDirectiveTokens(t *testing.T) {
         "@@code": Lexeme{lexemeType: CODE_DIRECTIVE, value: "@@code"},
         "@@=": Lexeme{lexemeType: CODE_END_DIRECTIVE, value: "@@="},
         "@@<example reference for a chunk>": Lexeme{lexemeType: CHUNK_REFERENCE, value: "example reference for a chunk"},
+        "@@;": Lexeme{lexemeType: ILLEGAL, value: ""},
+        "@@dostoyevsky": Lexeme{lexemeType: ILLEGAL, value: "@@dostoyevsky"},
+        "@@<an unterminated id": Lexeme{lexemeType: ILLEGAL, value: "@@<an unterminated id"},
     }
 
     for input, expectedOutput := range samples {
@@ -342,7 +345,9 @@ func TestDirectiveTokens(t *testing.T) {
             t.Errorf("Unexpected token %+v", token)
         }
 
-        AssertEOFTokenNext(lexer, t)
+        if token.lexemeType != ILLEGAL { // We don't care what comes after an illegal token.
+            AssertEOFTokenNext(lexer, t)
+        }
     }
 }
 @=
