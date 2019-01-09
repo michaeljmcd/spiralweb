@@ -243,6 +243,7 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 `TEXT`
 
 :   A catch-all for other text. Used in both documentation and code portions.
+    Defined by the regular expression `[^@@\[\]=,\n]+`.
 
 #### Analyzing the Input Stream ####
 
@@ -271,7 +272,7 @@ package main
 
 import "testing"
 import "strings"
-import "fmt"
+//import "fmt"
 import "container/list"
 
 func TestSimpleTokens(t *testing.T) {
@@ -286,7 +287,7 @@ func TestSimpleTokens(t *testing.T) {
     var token Lexeme
     for {
         token = lexer.Scan()
-        fmt.Printf("Received token: %+v\n", token)
+        //fmt.Printf("Received token: %+v\n", token)
         tokens.PushBack(token)
 
         if token.lexemeType == EOF || token.lexemeType == ILLEGAL {
@@ -296,6 +297,29 @@ func TestSimpleTokens(t *testing.T) {
 
     if tokens.Len() != 8 {
         t.Errorf("Received invalid number of tokens. Expected 8 and got %d", tokens.Len())
+    }
+}
+@=
+
+The previous test demonstrates converting the single-rune values into lexemes.
+The next test is to demonstrate that runs of text are properly recognized.
+
+@code Semantic Analysis Tests
+func TestTextRuns(t *testing.T) {
+    input := `testing 1 2 3`
+    lexer := NewLexer(strings.NewReader(input))
+
+    var token Lexeme
+    token = lexer.Scan()
+
+    if token.lexemeType != TEXT || token.value != "testing 1 2 3" {
+        t.Errorf("Unexpected token %+v", token)
+    }
+
+    token = lexer.Scan()
+
+    if token.lexemeType != EOF || token.value != "" {
+        t.Errorf("Unexpected token %+v", token)
     }
 }
 @=
@@ -340,8 +364,6 @@ func (lexer *Lexer) Scan() (lexeme Lexeme) {
 
     @<Lex Directives>
     @<Consume Text>
-
-    return Lexeme{lexemeType: ILLEGAL, value: ""} //TODO: fixme
 }
 
 @<IO Helpers>
@@ -358,15 +380,48 @@ if nextCharacter == '@@' {
         lexer.Read()
         return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@"}
     }
+
+    return Lexeme{lexemeType: ILLEGAL, value: ""} //TODO: fixme
 }
 @=
 
 TODO: FINISHME
 
-With the control statements handled, 
+With the control statements handled, we turn our attention to consuming runs of
+text that will be included in output, be it code or documentation. The code we
+have written before serves us in good stead because by looking at it we realize
+that we our directives begin with a relatively small number of characters and
+all we need to do is consume text until we reach one.
+
+We will use the `strings.Builder` ^[stringsbuilder] struct to dynamically build
+up the string as we read input to minimize memory copying.
 
 @code Consume Text
-// TODO
+var valueBuilder strings.Builder
+valueBuilder.WriteRune(nextCharacter)
+
+for {
+    lookaheadCharacter := lexer.Peek()
+    if isControlSequenceStartingCharacter(lookaheadCharacter) || lookaheadCharacter == eof {
+        break
+    }
+
+    nextCharacter = lexer.Read()
+    valueBuilder.WriteRune(nextCharacter)
+}
+
+return Lexeme{lexemeType: TEXT, value: valueBuilder.String()}
+@=
+
+All that remains is to define `isControlSequenceStartingCharacter`, the
+predicate for determining when we should stop consuming input. Based on the
+definition of the `TEXT` lexeme above, we can readily define this without
+resorting to a regular expression.
+
+@code IO Helpers
+func isControlSequenceStartingCharacter(c rune) (bool) {
+    return c == '@@' || c == '[' || c == ']' || c == '-' || c == ',' || c == '\n'
+}
 @=
 
 Throughout the above code, we have made use of a few wrapper functions that make
@@ -410,6 +465,7 @@ package main
 import (
     "io"
     "bufio"
+    "strings"
 )
 
 @<Lexer Type Definitions>
@@ -497,5 +553,6 @@ log := log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)
 [^flagpackage]: <https://golang.org/pkg/flag/>
 [^subcommand-detection]: <https://stackoverflow.com/questions/24504024/defining-independent-flagsets-in-golang>
 [^handwrittenparsers]: <https://blog.gopheracademy.com/advent-2014/parsers-lexers/>
+[^stringsbuilder]: <https://golang.org/pkg/strings/#Builder>
 
 // vim: set tw=80 ai: 
