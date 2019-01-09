@@ -134,6 +134,32 @@ included the end-user documentation. With that in mind, we will now turn our
 attention to the process of parsing a web, from which we will be able to readily
 implement the operations in which we are interested.
 
+We will use a family of structures to represent a parsed web, upon which we can
+perform any number of operations. The three types of chunk that merit different
+handling logic are code (for sets of lines that will be tangled into source
+code), documentation (for text to be woven into documentation) and references
+(which are markers for where the contents of another chunk will be inserted).
+
+@code Web Data Structures [out=web.go,lang=go]
+package main
+
+type ChunkType int
+
+const (
+    CODE ChunkType = iota
+    DOCUMENTATION
+    CODE_REFERENCE
+)
+
+type Chunk struct {
+    lines []string
+    name string
+    chunkType ChunkType
+    parent *Chunk
+    options map[string]string
+}
+@=
+
 ### Lexical Analysis ###
 
 In order to parse a web, we will be handrolling a lexer and parser, using the
@@ -635,6 +661,30 @@ import (
 @<Lexer Type Definitions>
 @<Scanning Implementation>
 @=
+
+### Syntactical Analysis ###
+
+We defined a target data structure to represent a literate web as well as a
+lexical analyzer to turn a stream of bytes into a stream of tokens. What remains
+is to bridge these two by implementing a parser that turns the tokens into a set
+of chunks. We will begin by looking at a grammar for the language to be
+recognized by SpiralWeb.
+
+    web → webtl web | ε
+    webtl → codedefn | docdefn | doclines
+    doclines → TEXT | NEWLINE | AT_DIRECTIVE | COMMA | OPEN_PROPERTY_LIST 
+        | CLOSE_PROPERTY_LIST | EQUALS
+    docdefn → DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines
+    codedefn → CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
+    codelines → codeline codelines | ε
+    codeline → TEXT | NEWLINE | AT_DIRECTIVE | OPEN_PROPERTY_LIST 
+        | CLOSE_PROPERTY_LIST | COMMA | EQUALS | chunkref
+    chunkref → CHUNK_REFERENCE
+    optionalpropertylist → propertylist | ε
+    propertylist → OPEN_PROPERTY_LIST propertysequence | CLOSE_PROPERTY_LIST
+    propertysequence → ε | propertysequence1
+    propertysequence1 → property | propertysequence1 COMMA property
+    property → TEXT EQUALS TEXT
 
 ## The Command Line Application ##
 
