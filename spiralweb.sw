@@ -316,7 +316,49 @@ func TestTextRuns(t *testing.T) {
         t.Errorf("Unexpected token %+v", token)
     }
 
+    AssertEOFTokenNext(lexer, t)
+}
+@=
+
+Next we will validate that tokens of common directives are recognized.
+
+@code Semantic Analysis Tests
+func TestAtDirectiveToken(t *testing.T) {
+    input := "@@@@"
+    lexer := NewLexer(strings.NewReader(input))
+
+    var token Lexeme
     token = lexer.Scan()
+
+    if token.lexemeType != AT_DIRECTIVE || token.value != "@@@@" {
+        t.Errorf("Unexpected token %+v", token)
+    }
+
+   AssertEOFTokenNext(lexer, t)
+}
+
+func TestDocDirectiveToken(t *testing.T) {
+    input := "@@doc"
+    lexer := NewLexer(strings.NewReader(input))
+
+    var token Lexeme
+    token = lexer.Scan()
+
+    if token.lexemeType != DOC_DIRECTIVE || token.value != "@@doc" {
+        t.Errorf("Unexpected token %+v", token)
+    }
+
+   AssertEOFTokenNext(lexer, t)
+}
+@=
+
+Finally, we define a helper function used to validate that the next token is the
+EOF token. This is due to the fact that many of the above tests need to end on
+this note.
+
+@code Semantic Analysis Tests
+func AssertEOFTokenNext(lexer *Lexer, t *testing.T) {
+    token := lexer.Scan()
 
     if token.lexemeType != EOF || token.value != "" {
         t.Errorf("Unexpected token %+v", token)
@@ -374,18 +416,58 @@ sequences that begins with the `@@` symbol. Here we find that there are several
 possiblities for what the full token could be. It could be `DOC_DIRECTIVE`,
 `CODE_DIRECTIVE`, `CODE_END_DIRECTIVE`, `AT_DIRECTIVE` or `CHUNK_REFERENCE`.
 
+The way that we will accomplish this is to peek at the next character and
+attempt to read in the token indicated by the next character. Fortunately, the
+current token set only requires a single character of lookahead to determine
+what the valid potential values are. Therefore, we will peek and delegate to a
+corresponding IO helper in order to read the token, if the input matches, or an
+error if it does not.
+
 @code Lex Directives
 if nextCharacter == '@@' {
-    if lexer.Peek() == '@@' {
-        lexer.Read()
-        return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@"}
+    lookaheadCharacter := lexer.Peek()
+
+    switch {
+        case lookaheadCharacter == '@@':
+            lexer.Read()
+            return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@@@"}
+        case lookaheadCharacter == 'd':
+            return AttemptDocDirectiveRead(lexer)
     }
 
-    return Lexeme{lexemeType: ILLEGAL, value: ""} //TODO: fixme
+    return Lexeme{lexemeType: ILLEGAL, value: ""}
 }
 @=
 
-TODO: FINISHME
+We will define each of these `Attempt*` helpers in turn. We will begin with the
+function to attempt to read a `DOC_DIRECTIVE`. A doc directive is terminated by
+a Unicode space, so we will read until we find a space character when we peek
+ahead. If the resulting string is not `@@doc`, we will return an error.
+
+@code IO Helpers
+func AttemptDocDirectiveRead(lexer *Lexer) Lexeme {
+    var valueBuilder strings.Builder
+    var nextCharacter rune
+
+    for {
+        lookaheadCharacter := lexer.Peek()
+        if unicode.IsSpace(lookaheadCharacter) || lookaheadCharacter == eof {
+            break
+        }
+
+        nextCharacter = lexer.Read()
+        valueBuilder.WriteRune(nextCharacter)
+    }
+
+    stringValue := valueBuilder.String()
+
+    if stringValue == "doc" {
+        return Lexeme{lexemeType: DOC_DIRECTIVE, value: "@@doc"}
+    }
+
+    return Lexeme{lexemeType: ILLEGAL, value: "@@" + stringValue}
+}
+@=
 
 With the control statements handled, we turn our attention to consuming runs of
 text that will be included in output, be it code or documentation. The code we
@@ -466,6 +548,7 @@ import (
     "io"
     "bufio"
     "strings"
+    "unicode"
 )
 
 @<Lexer Type Definitions>
