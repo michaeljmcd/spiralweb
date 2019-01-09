@@ -323,32 +323,27 @@ func TestTextRuns(t *testing.T) {
 Next we will validate that tokens of common directives are recognized.
 
 @code Semantic Analysis Tests
-func TestAtDirectiveToken(t *testing.T) {
-    input := "@@@@"
-    lexer := NewLexer(strings.NewReader(input))
-
-    var token Lexeme
-    token = lexer.Scan()
-
-    if token.lexemeType != AT_DIRECTIVE || token.value != "@@@@" {
-        t.Errorf("Unexpected token %+v", token)
+func TestDirectiveTokens(t *testing.T) {
+    var samples = map[string]Lexeme {
+        "@@@@": Lexeme{lexemeType: AT_DIRECTIVE, value: "@@@@"},
+        "@@doc": Lexeme{lexemeType: DOC_DIRECTIVE, value: "@@doc"},
+        "@@code": Lexeme{lexemeType: CODE_DIRECTIVE, value: "@@code"},
+        "@@=": Lexeme{lexemeType: CODE_END_DIRECTIVE, value: "@@="},
+        "@@<example reference for a chunk>": Lexeme{lexemeType: CHUNK_REFERENCE, value: "example reference for a chunk"},
     }
 
-   AssertEOFTokenNext(lexer, t)
-}
+    for input, expectedOutput := range samples {
+        lexer := NewLexer(strings.NewReader(input))
 
-func TestDocDirectiveToken(t *testing.T) {
-    input := "@@doc"
-    lexer := NewLexer(strings.NewReader(input))
+        var token Lexeme
+        token = lexer.Scan()
 
-    var token Lexeme
-    token = lexer.Scan()
+        if token.lexemeType != expectedOutput.lexemeType || token.value != expectedOutput.value  {
+            t.Errorf("Unexpected token %+v", token)
+        }
 
-    if token.lexemeType != DOC_DIRECTIVE || token.value != "@@doc" {
-        t.Errorf("Unexpected token %+v", token)
+        AssertEOFTokenNext(lexer, t)
     }
-
-   AssertEOFTokenNext(lexer, t)
 }
 @=
 
@@ -431,8 +426,15 @@ if nextCharacter == '@@' {
         case lookaheadCharacter == '@@':
             lexer.Read()
             return Lexeme{lexemeType: AT_DIRECTIVE, value: "@@@@"}
+        case lookaheadCharacter == '=':
+            lexer.Read()
+            return Lexeme{lexemeType: CODE_END_DIRECTIVE, value: "@@="}
         case lookaheadCharacter == 'd':
             return AttemptDocDirectiveRead(lexer)
+        case lookaheadCharacter == 'c':
+            return AttemptCodeDirectiveRead(lexer)
+        case lookaheadCharacter == '<':
+            return AttemptChunkReferenceRead(lexer)
     }
 
     return Lexeme{lexemeType: ILLEGAL, value: ""}
@@ -446,6 +448,21 @@ ahead. If the resulting string is not `@@doc`, we will return an error.
 
 @code IO Helpers
 func AttemptDocDirectiveRead(lexer *Lexer) Lexeme {
+    stringValue := lexer.ReadUntilWhitespace()
+
+    if stringValue == "doc" {
+        return Lexeme{lexemeType: DOC_DIRECTIVE, value: "@@doc"}
+    }
+
+    return Lexeme{lexemeType: ILLEGAL, value: "@@" + stringValue}
+}
+@=
+
+This code is simplified by the `ReadUntilWhitespace` function on the lexer,
+which, as implied, will keep reading until whitespace is reached.
+
+@code IO Helpers
+func (lexer *Lexer) ReadUntilWhitespace() string {
     var valueBuilder strings.Builder
     var nextCharacter rune
 
@@ -459,13 +476,58 @@ func AttemptDocDirectiveRead(lexer *Lexer) Lexeme {
         valueBuilder.WriteRune(nextCharacter)
     }
 
-    stringValue := valueBuilder.String()
+    return valueBuilder.String()
+}
+@=
 
-    if stringValue == "doc" {
-        return Lexeme{lexemeType: DOC_DIRECTIVE, value: "@@doc"}
+`CODE_DIRECTIVE` behaves similarly, reading until a space is reached and
+validating that the correct directive is found at the end.
+
+@code IO Helpers
+func AttemptCodeDirectiveRead(lexer *Lexer) Lexeme {
+    stringValue := lexer.ReadUntilWhitespace()
+
+    if stringValue == "code" {
+        return Lexeme{lexemeType: CODE_DIRECTIVE, value: "@@code"}
     }
 
     return Lexeme{lexemeType: ILLEGAL, value: "@@" + stringValue}
+}
+@=
+
+Parsing out a code reference is similar, but we do not parse to whitespace as
+the name within a chunk reference may contain whitespace. Therefore, we will
+have to write our own reader.
+
+@code IO Helpers
+func AttemptChunkReferenceRead(lexer *Lexer) Lexeme {
+    var b strings.Builder
+    var nc rune
+
+    b.WriteRune('@@')
+
+    for {
+        lc := lexer.Peek()
+
+        if lc == '\r' || lc == '\f' || lc == '\n' || lc == eof {
+            break
+        }
+
+        nc = lexer.Read()
+        b.WriteRune(nc)
+
+        if nc == '>' {
+            break
+        }
+    }
+
+    var s = b.String()
+
+    if s[0:2] != "@@<" || s[len(s) - 1] != '>' {
+        return Lexeme{lexemeType: ILLEGAL, value: s}
+    }
+
+    return Lexeme{lexemeType: CHUNK_REFERENCE, value: s[2:len(s)-1]}
 }
 @=
 
