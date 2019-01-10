@@ -691,8 +691,40 @@ what should and should not be accepted by the grammar.
 
 @code Parser Tests [out=parser_test.go,lang=go]
 package main
+//TODO: split this out
 
 import "testing"
+import "strings"
+
+func TestSmallSampleWebs(t *testing.T) {
+    var samples = map[string][]Chunk {
+        "asdf asdf": []Chunk {
+            Chunk{lines: []string{"asdf asdf"}, chunkType: DOCUMENTATION},
+        },
+    }
+
+    for in, out := range samples {
+        res := ParseSpiralWeb(strings.NewReader(in))
+        VerifyParsedResult(&out, &res, t)
+    }
+}
+
+func VerifyParsedResult(expected *[]Chunk, actual *[]Chunk, t *testing.T) {
+    if len(*expected) != len(*actual) {
+        t.Errorf("Actual return length of %d differed from expected of %d",
+                len(*actual), len(*expected))
+        return
+    }
+
+    for i := 0; i < len(*expected); i++ {
+        v1 := (*expected)[i]
+        v2 := (*actual)[i]
+
+        if v1 != v2 {
+            t.Errorf("Output %v unexpecteds. Expected %v.", v2, v1)
+        }
+    }
+}
 @=
 
 #### Parse Table ####
@@ -702,7 +734,32 @@ too deep into the actual parsing logic, we will define a parsing table based on
 the grammar specified above.
 
 @code Parse Table 
+type ProductionRule int
+
+const (
+    WEB ProductionRule = iota
+)
+
 //const parseTable = map[]
+@=
+
+#### Parsing Algorithm ####
+
+Here we implement the actual parsing algorithm.
+
+@code Parser Implementation [out=parser.go,lang=go]
+package main
+
+import (
+    "io"
+)
+
+@<Parse Table>
+
+func ParseSpiralWeb(r io.Reader) []Chunk {
+    NewLexer(r)
+    return []Chunk{}
+}
 @=
 
 ## The Command Line Application ##
