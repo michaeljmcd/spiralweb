@@ -164,7 +164,7 @@ type Chunk struct {
 
 In order to parse a web, we will be handrolling a lexer and parser, using the
 ideas put forth by Rob Pike and further discussed by Ben Johnson
-^[handwrittenparsers]. 
+[^handwrittenparsers]. 
 
 #### Tokens ####
 
@@ -222,7 +222,7 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 `DOC_DIRECTIVE`
 
 :   An opening to a directive used to mark the beginning of documentation. The
-    only valid value is `@doc`.
+    only valid value is `@@doc`.
 
 `CODE_DIRECTIVE`
 
@@ -231,7 +231,7 @@ simply a handy shorthand to describe what makes a valid instance of each value.
 
 `CODE_END_DIRECTIVE`
 
-:   The end delimeter for a code block. Should be comprised of `@=`.
+:   The end delimeter for a code block. Should be comprised of `@@=`.
 
 `OPEN_PROPERTY_LIST`
 
@@ -582,7 +582,7 @@ have written before serves us in good stead because by looking at it we realize
 that we our directives begin with a relatively small number of characters and
 all we need to do is consume text until we reach one.
 
-We will use the `strings.Builder` ^[stringsbuilder] struct to dynamically build
+We will use the `strings.Builder` [^stringsbuilder] struct to dynamically build
 up the string as we read input to minimize memory copying.
 
 @code Consume Text
@@ -769,7 +769,7 @@ invocation of `spiralweb`. Here we take that specification and combine it
 with the APIs we defined previously to put it all together and create a
 usable command line application.
 
-We will use Golang's `flag` package ^[flagpackage] to parse out the command line
+We will use Golang's `flag` package [^flagpackage] to parse out the command line
 parameters. The general usage of this package is to first define the flags, then
 run the parser, as we see here.
 
@@ -841,7 +841,6 @@ log := log.New(os.Stderr, "", log.LstdFlags | log.Lshortfile)
 ## References
 
 [^flagpackage]: <https://golang.org/pkg/flag/>
-[^subcommand-detection]: <https://stackoverflow.com/questions/24504024/defining-independent-flagsets-in-golang>
 [^handwrittenparsers]: <https://blog.gopheracademy.com/advent-2014/parsers-lexers/>
 [^stringsbuilder]: <https://golang.org/pkg/strings/#Builder>
 
