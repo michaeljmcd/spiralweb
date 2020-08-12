@@ -1,0 +1,7 @@
+{:paths   ["src"]
+ :deps    {; CLI dependencies.
+           org.clojure/tools.cli {:mvn/version "1.0.194"}}
+ :aliases  {
+     :cljfmt {:extra-deps {cljfmt {:mvn/version "0.6.4"}}
+              :main-opts ["-m" "cljfmt.main"]}
+ }}
