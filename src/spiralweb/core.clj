@@ -1,5 +1,5 @@
 (ns spiralweb.core
- (:require [clojure.string :refer [starts-with? trim]]
+ (:require [clojure.string :refer [starts-with? trim index-of]]
            [clojure.core.reducers :refer [fold]]))
 
 ; General parsing functions and combinators.
@@ -127,6 +127,8 @@
 
 ; Spiralweb language definition
 
+(def non-breaking-ws (one-of [\space \tab]))
+
 (def nl 
  (using (match \newline)
   (fn [x] {:type :newline :value (str \newline)})))
@@ -140,6 +142,10 @@
 (def doc-directive 
  (using (literal "@doc")
   (fn [_] {:type :doc-directive :value "@doc"})))
+
+(def code-directive 
+ (using (literal "@code")
+  (fn [_] {:type :code-directive :value "@code"})))
 
 (def at-directive 
  (using (literal "@@")
@@ -161,6 +167,22 @@
  (using (match \])
   (fn [_] {:type :close-proplist :value "]"})))
 
+(def chunkref
+ (using
+ (then 
+  (star non-breaking-ws) 
+  (match \@) (match \<) 
+  (plus (not-one-of [\> \newline]))
+  (match \>)
+  (star non-breaking-ws))
+ (fn [x] 
+  (let [ref-text (apply str x)
+        trimmed-ref-text (trim ref-text)]
+  {:type :chunk-reference
+   :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
+   :indent-level (index-of ref-text "@<")})
+  )))
+
 (def docline 
       (|| t-text
           nl 
@@ -169,6 +191,16 @@
           t-equals
           open-proplist
           close-proplist))
+
+(def codeline 
+      (|| t-text
+          nl 
+          at-directive 
+          comma
+          t-equals
+          open-proplist
+          close-proplist
+          chunkref))
 
 (def doclines (plus docline))
 
@@ -182,7 +214,7 @@
 (def property-sequence (|| (then comma property) property))
  
 (def property-list
- (using (then open-proplist (star property-sequence) close-proplist (star (one-of [\space \tab])))
+ (using (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
   (fn [x]
    {:type :properties :value
    (filter (fn [y] (and (not (nil? y))
@@ -199,3 +231,11 @@
                  :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))
   ))
 
+(def code-definition
+ (using (|> code-directive t-text (optional property-list) nl doclines)
+    (fn [x]
+        (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+              props (flatten (map :value (filter prop-token? all-tokens)))]
+         {:type :doc :options props
+                 :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))
+  ))
