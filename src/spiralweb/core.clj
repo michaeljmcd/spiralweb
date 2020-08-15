@@ -54,7 +54,7 @@
 
 (def star zero-or-more)
 
-(defn por
+(defn choice
   ([] (with-meta fail {:parser "Fail"}))
   ([parser1] (with-meta parser1 {:parser (parser-name parser1)}))
   ([parser1 parser2]
@@ -65,9 +65,9 @@
            (parser2 inp)
            r1)))
      {:parser (str (parser-name parser1) " OR " (parser-name parser2))}))
-  ([parser1 parser2 & parsers] (fold por (concat [parser1 parser2] parsers))))
+  ([parser1 parser2 & parsers] (fold choice (concat [parser1 parser2] parsers))))
 
-(def || por)
+(def || choice)
 
 (defn optional [parser]
   (with-meta
@@ -75,7 +75,7 @@
     {:parser (str (parser-name parser) "?")}))
 
 (defn one-of [chars]
-  (apply por (map #(match %) chars)))
+  (apply choice (map #(match %) chars)))
 
 (defn using [parser transformer]
   (with-meta
