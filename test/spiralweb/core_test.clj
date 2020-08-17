@@ -8,3 +8,8 @@
  (is (success? (nl [\newline])))
  (is (failure? (nl nil)))
  (is (failure? (nl "asdf"))))
+
+(deftest non-breaking-ws-tests
+ (is (= '[[\space] ()] (non-breaking-ws [\space])))
+ (is (success? (non-breaking-ws [\space])))
+ (is (failure? (non-breaking-ws [\a \space]))))
