@@ -91,15 +91,6 @@
           (succeed (transformer data) state))))
     {:parser (str (parser-name parser) " [+ Transformer]")}))
 
-(defn literal [lit]
-  (with-meta
-    (fn [inp]
-      (if (and (not (nil? inp)) 
-               (starts-with? inp lit))
-        (succeed lit (subs inp (count lit)))
-        (fail inp)))
-    {:parser (str "Literal: " lit)}))
-
 (defn then
   ([] (with-meta epsilon {:parser "Epsilon"}))
   ([parser1] (with-meta parser1 (meta parser1)))
@@ -127,6 +118,11 @@
 
 (def |> then)
 
+(defn literal [lit]
+ (with-meta
+ (apply then (map match lit))
+ {:parser "Literal [" lit "]"}))
+
 (defn one-or-more [parser]
   (then parser (star parser)
    ))
@@ -147,7 +143,7 @@
 (def t-text
  (with-meta
   (using
-   (star 
+   (plus 
     (with-meta
     (not-one-of [\@ \[ \] \= \, \newline])
     {:parser "Non-Reserved Characters"}))
@@ -257,13 +253,11 @@
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (def code-definition
-  (using (then code-directive t-text (optional property-list) nl (star codeline) );code-end)
+  (using (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
              {:type :doc :options props
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
-(def webtl (choice code-definition doc-definition doclines))
-
-(def web (choice (star webtl) epsilon))
+(def web (star (choice code-definition doc-definition doclines)))
