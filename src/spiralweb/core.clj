@@ -41,12 +41,16 @@
 
 (defn zero-or-more [parser]
   (letfn [(accumulate [inp xs]
-          (debug "Z+: " (parser-name parser) " Input: " inp)
+          (debug "Z*: " (parser-name parser) " Input: " inp)
             (if (empty? inp)
               (succeed (reverse xs) inp)
               (let [r (parser inp)]
+               (debug "Z*: Parser " (parser-name parser) " yielded " r)
                 (if (failure? r)
+                 (do 
+                  (debug "Z*: Hit end of matches, returning " (succeed (reverse xs) inp))
                   (succeed (reverse xs) inp)
+                 )
                   (recur (second r) (concat (first r) xs))))))]
 
     (with-meta
@@ -104,26 +108,28 @@
      (fn [inp]
        (debug "Entering Then combinator.")
        (let [[data1 remaining1 :as r1] (parser1 inp)]
+        (debug "Parser 1 [" (parser-name parser1) "] yielded " r1)
          (if (success? r1)
            (let [[data2 remaining2 :as r2] (parser2 remaining1)]
+             (debug "Parser 2 [" (parser-name parser2) "] yielded " r2)
              (if (success? r2)
                (succeed (concat data1 data2) remaining2)
                (do 
-                 ;(debug (parser-name parser2) " failed, terminating chain.")
+                 (debug "Parser 2 [" (parser-name parser2) "] failed, terminating chain.")
                  (fail inp)
-               ))
+               )))
            (do
-             ;(debug (parser-name parser1) " failed, terminating chain.")
-             (fail inp)
-           )
-           ))))
+             (debug "Parser 1 [" (parser-name parser1) "] failed, terminating chain.")
+             (fail inp))
+           )))
      {:parser (str (parser-name parser1) " THEN " (parser-name parser2))}))
   ([parser1 parser2 & parsers] (fold then (cons parser1 (cons parser2 parsers)))))
 
 (def |> then)
 
 (defn one-or-more [parser]
-  (then parser (star parser)))
+  (then parser (star parser)
+   ))
 
 (def plus one-or-more)
 
@@ -141,7 +147,10 @@
 (def t-text
  (with-meta
   (using
-   (plus (not-one-of [\@ \[ \] \= \, \newline]))
+   (star 
+    (with-meta
+    (not-one-of [\@ \[ \] \= \, \newline])
+    {:parser "Non-Reserved Characters"}))
    (fn [x] {:type :text :value (apply str x)}))
   {:parser "Text Token"}))
 
@@ -180,6 +189,7 @@
          (fn [_] {:type :close-proplist :value "]"})))
 
 (def chunkref
+ (with-meta
   (using
    (then
     (star non-breaking-ws)
@@ -192,7 +202,8 @@
            trimmed-ref-text (trim ref-text)]
        {:type :chunk-reference
         :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-        :indent-level (index-of ref-text "@<")}))))
+        :indent-level (index-of ref-text "@<")})))
+  {:parser "Chunk Reference"}))
 
 (def docline
  (with-meta
