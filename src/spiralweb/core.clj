@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [starts-with? trim index-of]]
             [clojure.core.reducers :refer [fold]]
             [clojure.tools.cli :refer [parse-opts]]
-            [taoensso.timbre :as t :refer [debug]]))
+            [taoensso.timbre :as t :refer [debug error]]))
 
 ; General parsing functions and combinators.
 
@@ -265,15 +265,16 @@
 
 ; CLI interface
 
+(t/merge-config! {:level :error})
+
 (defn tangle [files]
  (doseq [f files]
   (let [parsed-web (web (slurp f))]
 
    (if (empty? (second parsed-web))
-    (println (filter #(= :code (:type %)) parsed-web))
-    (println "Invalid file")
+    (debug (filter #(= :code (:type %)) parsed-web))
+    (error "Invalid file")
    )
-        
   )
  ))
 
