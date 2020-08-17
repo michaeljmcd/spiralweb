@@ -42,16 +42,15 @@
 
 (defn zero-or-more [parser]
   (letfn [(accumulate [inp xs]
-          (debug "Z*: " (parser-name parser) " Input: " inp)
+            (debug "Z*: " (parser-name parser) " Input: " inp)
             (if (empty? inp)
               (succeed (reverse xs) inp)
               (let [r (parser inp)]
-               (debug "Z*: Parser " (parser-name parser) " yielded " r)
+                (debug "Z*: Parser " (parser-name parser) " yielded " r)
                 (if (failure? r)
-                 (do 
-                  (debug "Z*: Hit end of matches, returning " (succeed (reverse xs) inp))
-                  (succeed (reverse xs) inp)
-                 )
+                  (do
+                    (debug "Z*: Hit end of matches, returning " (succeed (reverse xs) inp))
+                    (succeed (reverse xs) inp))
                   (recur (second r) (concat (first r) xs))))))]
 
     (with-meta
@@ -100,62 +99,59 @@
      (fn [inp]
        (debug "Entering Then combinator.")
        (let [[data1 remaining1 :as r1] (parser1 inp)]
-        (debug "Parser 1 [" (parser-name parser1) "] yielded " r1)
+         (debug "Parser 1 [" (parser-name parser1) "] yielded " r1)
          (if (success? r1)
            (let [[data2 remaining2 :as r2] (parser2 remaining1)]
              (debug "Parser 2 [" (parser-name parser2) "] yielded " r2)
              (if (success? r2)
                (succeed (concat data1 data2) remaining2)
-               (do 
+               (do
                  (debug "Parser 2 [" (parser-name parser2) "] failed, terminating chain.")
-                 (fail inp)
-               )))
+                 (fail inp))))
            (do
              (debug "Parser 1 [" (parser-name parser1) "] failed, terminating chain.")
-             (fail inp))
-           )))
+             (fail inp)))))
      {:parser (str (parser-name parser1) " THEN " (parser-name parser2))}))
   ([parser1 parser2 & parsers] (fold then (cons parser1 (cons parser2 parsers)))))
 
 (def |> then)
 
 (defn literal [lit]
- (with-meta
- (apply then (map match lit))
- {:parser "Literal [" lit "]"}))
+  (with-meta
+    (apply then (map match lit))
+    {:parser "Literal [" lit "]"}))
 
 (defn one-or-more [parser]
-  (then parser (star parser)
-   ))
+  (then parser (star parser)))
 
 (def plus one-or-more)
 
 ; Spiralweb language definition
 
-(def non-breaking-ws 
- (with-meta
-   (one-of [\space \tab])
-   {:parser "Non-breaking whitespace"}))
+(def non-breaking-ws
+  (with-meta
+    (one-of [\space \tab])
+    {:parser "Non-breaking whitespace"}))
 
 (def nl
   (using (match \newline)
          (fn [x] {:type :newline :value (str \newline)})))
 
 (def t-text
- (with-meta
-  (using
-   (plus 
-    (with-meta
-    (not-one-of [\@ \[ \] \= \, \newline])
-    {:parser "Non-Reserved Characters"}))
-   (fn [x] {:type :text :value (apply str x)}))
-  {:parser "Text Token"}))
+  (with-meta
+    (using
+     (plus
+      (with-meta
+        (not-one-of [\@ \[ \] \= \, \newline])
+        {:parser "Non-Reserved Characters"}))
+     (fn [x] {:type :text :value (apply str x)}))
+    {:parser "Text Token"}))
 
 (def code-end
- (with-meta
- (using (literal "@=")
-        (fn [_] {:type :code-end :value "@="}))
- {:parser "Code End"}))
+  (with-meta
+    (using (literal "@=")
+           (fn [_] {:type :code-end :value "@="}))
+    {:parser "Code End"}))
 
 (def doc-directive
   (using (literal "@doc")
@@ -186,44 +182,44 @@
          (fn [_] {:type :close-proplist :value "]"})))
 
 (def chunkref
- (with-meta
-  (using
-   (then
-    (star non-breaking-ws)
-    (match \@) (match \<)
-    (plus (not-one-of [\> \newline]))
-    (match \>)
-    (star non-breaking-ws))
-   (fn [x]
-     (let [ref-text (apply str x)
-           trimmed-ref-text (trim ref-text)]
-       {:type :chunk-reference
-        :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-        :indent-level (index-of ref-text "@<")})))
-  {:parser "Chunk Reference"}))
+  (with-meta
+    (using
+     (then
+      (star non-breaking-ws)
+      (match \@) (match \<)
+      (plus (not-one-of [\> \newline]))
+      (match \>)
+      (star non-breaking-ws))
+     (fn [x]
+       (let [ref-text (apply str x)
+             trimmed-ref-text (trim ref-text)]
+         {:type :chunk-reference
+          :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
+          :indent-level (index-of ref-text "@<")})))
+    {:parser "Chunk Reference"}))
 
 (def docline
- (with-meta
-  (choice t-text
-      nl
-      at-directive
-      comma
-      t-equals
-      open-proplist
-      close-proplist)
-  {:parser "Docline"}))
+  (with-meta
+    (choice t-text
+            nl
+            at-directive
+            comma
+            t-equals
+            open-proplist
+            close-proplist)
+    {:parser "Docline"}))
 
 (def codeline
- (with-meta 
-  (choice t-text
-      nl
-      at-directive
-      comma
-      t-equals
-      open-proplist
-      close-proplist
-      chunkref)
-  {:parser "Codeline"}))
+  (with-meta
+    (choice t-text
+            nl
+            at-directive
+            comma
+            t-equals
+            open-proplist
+            close-proplist
+            chunkref)
+    {:parser "Codeline"}))
 
 (def doclines (plus docline))
 
@@ -268,26 +264,19 @@
 (t/merge-config! {:level :error})
 
 (defn tangle [files]
- (doseq [f files]
-  (let [parsed-web (web (slurp f))]
+  (doseq [f files]
+    (let [parsed-web (web (slurp f))]
 
-   (if (empty? (second parsed-web))
-    (debug (filter #(= :code (:type %)) parsed-web))
-    (error "Invalid file")
-   )
-  )
- ))
+      (if (empty? (second parsed-web))
+        (debug (filter #(= :code (:type %)) parsed-web))
+        (error "Invalid file")))))
 
 (def cli-options
- [["-c" "--chunk CHUNK"]
- ["-f" "--help"]]
- )
+  [["-c" "--chunk CHUNK"]
+   ["-f" "--help"]])
 
 (defn -main [& args]
- (let [opts (parse-opts args cli-options)]
-  (case (first (:arguments opts))
-   "tangle" (tangle (rest (:arguments opts)))
-   "help" (println "Help!")
-  )
- )
-)
+  (let [opts (parse-opts args cli-options)]
+    (case (first (:arguments opts))
+      "tangle" (tangle (rest (:arguments opts)))
+      "help" (println "Help!"))))
