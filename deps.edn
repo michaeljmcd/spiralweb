@@ -1,6 +1,8 @@
 {:paths   ["src"]
  :deps    {; CLI dependencies.
-           org.clojure/tools.cli {:mvn/version "1.0.194"}}
+           org.clojure/tools.cli {:mvn/version "1.0.194"}
+           com.taoensso/timbre {:mvn/version "4.10.0"}
+ }
  :aliases  {
     :test     {:extra-paths ["test"]
                :extra-deps  {lambdaisland/kaocha {:mvn/version "0.0-529"}}

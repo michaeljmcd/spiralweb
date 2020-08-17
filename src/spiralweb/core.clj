@@ -1,6 +1,7 @@
 (ns spiralweb.core
   (:require [clojure.string :refer [starts-with? trim index-of]]
-            [clojure.core.reducers :refer [fold]]))
+            [clojure.core.reducers :refer [fold]]
+            [taoensso.timbre :as t :refer [debug]]))
 
 ; General parsing functions and combinators.
 
@@ -40,7 +41,7 @@
 
 (defn zero-or-more [parser]
   (letfn [(accumulate [inp xs]
-          ;(println "Z+: " (parser-name parser) " Input: " inp)
+          (debug "Z+: " (parser-name parser) " Input: " inp)
             (if (empty? inp)
               (succeed (reverse xs) inp)
               (let [r (parser inp)]
@@ -89,24 +90,33 @@
 (defn literal [lit]
   (with-meta
     (fn [inp]
-      (if (starts-with? inp lit)
+      (if (and (not (nil? inp)) 
+               (starts-with? inp lit))
         (succeed lit (subs inp (count lit)))
         (fail inp)))
     {:parser (str "Literal: " lit)}))
 
 (defn then
-  ([] (with-meta epsilon {:parser "Epsilon (empty)"}))
+  ([] (with-meta epsilon {:parser "Epsilon"}))
   ([parser1] (with-meta parser1 (meta parser1)))
   ([parser1 parser2]
    (with-meta
      (fn [inp]
+       (debug "Entering Then combinator.")
        (let [[data1 remaining1 :as r1] (parser1 inp)]
          (if (success? r1)
            (let [[data2 remaining2 :as r2] (parser2 remaining1)]
              (if (success? r2)
                (succeed (concat data1 data2) remaining2)
-               (fail inp)))
-           (fail inp))))
+               (do 
+                 ;(debug (parser-name parser2) " failed, terminating chain.")
+                 (fail inp)
+               ))
+           (do
+             ;(debug (parser-name parser1) " failed, terminating chain.")
+             (fail inp)
+           )
+           ))))
      {:parser (str (parser-name parser1) " THEN " (parser-name parser2))}))
   ([parser1 parser2 & parsers] (fold then (cons parser1 (cons parser2 parsers)))))
 
@@ -119,16 +129,27 @@
 
 ; Spiralweb language definition
 
-(def non-breaking-ws (one-of [\space \tab]))
+(def non-breaking-ws 
+ (with-meta
+   (one-of [\space \tab])
+   {:parser "Non-breaking whitespace"}))
 
 (def nl
   (using (match \newline)
          (fn [x] {:type :newline :value (str \newline)})))
 
 (def t-text
+ (with-meta
   (using
    (plus (not-one-of [\@ \[ \] \= \, \newline]))
-   (fn [x] {:type :text :value (apply str x)})))
+   (fn [x] {:type :text :value (apply str x)}))
+  {:parser "Text Token"}))
+
+(def code-end
+ (with-meta
+ (using (literal "@=")
+        (fn [_] {:type :code-end :value "@="}))
+ {:parser "Code End"}))
 
 (def doc-directive
   (using (literal "@doc")
@@ -174,23 +195,27 @@
         :indent-level (index-of ref-text "@<")}))))
 
 (def docline
-  (|| t-text
+ (with-meta
+  (choice t-text
       nl
       at-directive
       comma
       t-equals
       open-proplist
-      close-proplist))
+      close-proplist)
+  {:parser "Docline"}))
 
 (def codeline
-  (|| t-text
+ (with-meta 
+  (choice t-text
       nl
       at-directive
       comma
       t-equals
       open-proplist
       close-proplist
-      chunkref))
+      chunkref)
+  {:parser "Codeline"}))
 
 (def doclines (plus docline))
 
@@ -201,7 +226,7 @@
              {:type :property :value {:name (-> scrubbed first :value trim)
                                       :value (-> scrubbed (nth 2) :value trim)}}))))
 
-(def property-sequence (|| (then comma property) property))
+(def property-sequence (choice (then comma property) property))
 
 (def property-list
   (using (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
@@ -213,7 +238,7 @@
 (defn- prop-token? [t] (= :properties (:type t)))
 
 (def doc-definition
-  (using (|> doc-directive t-text (optional property-list) nl doclines)
+  (using (then doc-directive t-text (optional property-list) nl doclines)
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
@@ -221,9 +246,13 @@
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (def code-definition
-  (using (|> code-directive t-text (optional property-list) nl doclines)
+  (using (then code-directive t-text (optional property-list) nl (star codeline) );code-end)
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
              {:type :doc :options props
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
+
+(def webtl (choice code-definition doc-definition doclines))
+
+(def web (choice (star webtl) epsilon))
