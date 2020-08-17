@@ -1,6 +1,7 @@
 (ns spiralweb.core
   (:require [clojure.string :refer [starts-with? trim index-of]]
             [clojure.core.reducers :refer [fold]]
+            [clojure.tools.cli :refer [parse-opts]]
             [taoensso.timbre :as t :refer [debug]]))
 
 ; General parsing functions and combinators.
@@ -261,3 +262,31 @@
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (def web (star (choice code-definition doc-definition doclines)))
+
+; CLI interface
+
+(defn tangle [files]
+ (doseq [f files]
+  (let [parsed-web (web (slurp f))]
+
+   (if (empty? (second parsed-web))
+    (println (filter #(= :code (:type %)) parsed-web))
+    (println "Invalid file")
+   )
+        
+  )
+ ))
+
+(def cli-options
+ [["-c" "--chunk CHUNK"]
+ ["-f" "--help"]]
+ )
+
+(defn -main [& args]
+ (let [opts (parse-opts args cli-options)]
+  (case (first (:arguments opts))
+   "tangle" (tangle (rest (:arguments opts)))
+   "help" (println "Help!")
+  )
+ )
+)
