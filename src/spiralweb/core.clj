@@ -249,13 +249,15 @@
              {:type :doc :options props
               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
+(defn code-end? [t] (= (:type t) :code-end))
+
 (def code-definition
   (using (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
              {:type :doc :options props
-              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
+              :name (-> n :value trim) :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
 (def web (star (choice code-definition doc-definition doclines)))
 
@@ -263,13 +265,20 @@
 
 (t/merge-config! {:level :error})
 
-(defn tangle [files]
-  (doseq [f files]
-    (let [parsed-web (web (slurp f))]
+(defn extract-output-chunks [webstr]
+    (let [parsed-web (web webstr)]
+          (if (empty? (second parsed-web))
+            (debug (filter #(= :code (:type %)) parsed-web))
+            (error "Invalid web")))
+)
 
-      (if (empty? (second parsed-web))
-        (debug (filter #(= :code (:type %)) parsed-web))
-        (error "Invalid file")))))
+(defn tangle [files]
+ ; TODO: handle targeted chunk case 
+  (doseq [f files]
+    (let [output-chunks (extract-output-chunks (slurp f))]
+      (doseq [output-path (keys output-chunks)]
+       (spit output-path (get output-chunks output-path))
+    ))))
 
 (def cli-options
   [["-c" "--chunk CHUNK"]
