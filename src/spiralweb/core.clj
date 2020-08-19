@@ -265,12 +265,15 @@
 
 (t/merge-config! {:level :error})
 
+(defn is-code-chunk? [c]
+ (= (:type c) :code))
+
 (defn extract-inner [result chunks]
  (let [chunk (first chunks)]
  (cond
   (empty? chunks) 
     result
-  (not (= :code (:type chunk))) 
+  (not (is-code-chunk? chunk)) 
     (recur result (rest chunks))
   (contains? result (:name chunk))
    (recur
@@ -291,29 +294,32 @@
  :value
  :value))
 
-(defn has-output-path? [c]
+(defn has-output-path? 
+ "Examines a chunk map and indicates whether there is an output path specified on the chunk."
+ [c]
  (some? (output-path c)))
 
 (defn extract-output-chunks [webstr]
-    (let [[parse-tree remaining-input :as parsed-web] (web webstr)]
+    (let [[parse-tree remaining-input] (web webstr)]
           (if (empty? remaining-input)
             (filter has-output-path? (vals (extract-inner {} parse-tree)))
-            (error "Invalid web")
-            )))
+            (error "Invalid web"))))
 
-(defn tangle [files]
+(defn tangle "Accepts a list of files, extracts code and writes it out."
+ [files]
+ ; TODO: handle chunk references
  ; TODO: handle targeted chunk case 
   (doseq [f files]
     (let [output-chunks (extract-output-chunks (slurp f))]
       (doseq [chunk output-chunks]
-       (spit (output-path chunk) (apply str (:lines chunk)))
-    ))))
+       (spit (output-path chunk) (apply str (:lines chunk)))))))
 
 (def cli-options
   [["-c" "--chunk CHUNK"]
    ["-f" "--help"]])
 
-(defn -main [& args]
+(defn -main "The main entrypoint for running SpiralWeb as a command line tool." 
+ [& args]
   (let [opts (parse-opts args cli-options)]
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
