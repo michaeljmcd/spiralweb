@@ -256,7 +256,7 @@
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
-             {:type :doc :options props
+             {:type :code :options props
               :name (-> n :value trim) :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
 (def web (star (choice code-definition doc-definition doclines)))
@@ -265,19 +265,48 @@
 
 (t/merge-config! {:level :error})
 
+(defn extract-inner [result chunks]
+ (let [chunk (first chunks)]
+ (cond
+  (empty? chunks) 
+    result
+  (not (= :code (:type chunk))) 
+    (recur result (rest chunks))
+  (contains? result (:name chunk))
+   (recur
+    (update-in result [(:name chunk) :lines]
+     (fn [x] (concat x (:lines chunk))))
+    (rest chunks))
+   :else
+   (recur (assoc result (:name chunk) chunk)
+    (rest chunks)))))
+
+(defn output-option? [opt]
+(= "out" (-> opt :value :name)))
+
+(defn output-path [c]
+ (->
+ (filter output-option? (:options c))
+ first
+ :value
+ :value))
+
+(defn has-output-path? [c]
+ (some? (output-path c)))
+
 (defn extract-output-chunks [webstr]
-    (let [parsed-web (web webstr)]
-          (if (empty? (second parsed-web))
-            (debug (filter #(= :code (:type %)) parsed-web))
-            (error "Invalid web")))
-)
+    (let [[parse-tree remaining-input :as parsed-web] (web webstr)]
+          (if (empty? remaining-input)
+            (filter has-output-path? (vals (extract-inner {} parse-tree)))
+            (error "Invalid web")
+            )))
 
 (defn tangle [files]
  ; TODO: handle targeted chunk case 
   (doseq [f files]
     (let [output-chunks (extract-output-chunks (slurp f))]
-      (doseq [output-path (keys output-chunks)]
-       (spit output-path (get output-chunks output-path))
+      (doseq [chunk output-chunks]
+       (spit (output-path chunk) (apply str (:lines chunk)))
     ))))
 
 (def cli-options
