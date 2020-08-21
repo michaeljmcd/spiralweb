@@ -299,10 +299,40 @@
  [c]
  (some? (output-path c)))
 
+(defn build-chunk-crossrefs 
+ "Accepts a sequence of chunks, some of which may be documentation chunks 
+  and some of which may be code chunks, and builds a map of maps indicating
+  whether one chunk refers to another.
+
+  {\"asdf\" : {\"def\": true, \"abc\": false }}
+
+  Hypothetically. This map maybe sparse."
+ [chunks]
+ (letfn [(add-references [chunk result]
+          (let [ref-lines (filter #(= :chunk-reference (:type %)) (:lines chunk))
+                chunk-adjacent (get result (:name chunk))
+                additions (interleave (map :name ref-lines) (repeat true))]
+          (if (empty? additions)
+           result
+           (assoc result (:name chunk)
+            (apply (partial assoc chunk-adjacent) additions)))
+          ))
+
+         (build-chunk-crossrefs-inner [chunks result]
+          (let [[c & cs] chunks]
+           (cond
+            (empty? chunks) result
+            :else (recur cs (add-references c result))
+           )
+          ))]
+ (build-chunk-crossrefs-inner chunks {})
+))
+
 (defn extract-output-chunks [webstr]
     (let [[parse-tree remaining-input] (web webstr)]
           (if (empty? remaining-input)
-            (filter has-output-path? (vals (extract-inner {} parse-tree)))
+            (filter has-output-path? 
+                   (vals (extract-inner {} parse-tree)))
             (error "Invalid web"))))
 
 (defn tangle "Accepts a list of files, extracts code and writes it out."
