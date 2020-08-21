@@ -306,7 +306,7 @@
 
   {\"asdf\" : {\"def\": true, \"abc\": false }}
 
-  Hypothetically. This map maybe sparse."
+  Hypothetically. This map could be sparse."
  [chunks]
  (letfn [(add-references [chunk result]
           (let [ref-lines (filter #(= :chunk-reference (:type %)) (:lines chunk))
@@ -325,8 +325,7 @@
             :else (recur cs (add-references c result))
            )
           ))]
- (build-chunk-crossrefs-inner chunks {})
-))
+ (build-chunk-crossrefs-inner chunks {})))
 
 (defn extract-output-chunks [webstr]
     (let [[parse-tree remaining-input] (web webstr)]
