@@ -149,7 +149,7 @@
 
 (def code-end
   (with-meta
-    (using (literal "@=")
+    (using (literal "@end")
            (fn [_] {:type :code-end :value "@="}))
     {:parser "Code End"}))
 
