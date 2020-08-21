@@ -150,7 +150,7 @@
 (def code-end
   (with-meta
     (using (literal "@end")
-           (fn [_] {:type :code-end :value "@="}))
+           (fn [_] {:type :code-end :value "@end"}))
     {:parser "Code End"}))
 
 (def doc-directive
