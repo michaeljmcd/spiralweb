@@ -268,7 +268,7 @@
 (defn is-code-chunk? [c]
  (= (:type c) :code))
 
-(defn extract-inner [result chunks]
+(defn combine-code-chunks [result chunks]
  (let [chunk (first chunks)]
  (cond
   (empty? chunks) 
@@ -278,7 +278,7 @@
   (contains? result (:name chunk))
    (recur
     (update-in result [(:name chunk) :lines]
-     (fn [x] (concat x (:lines chunk))))
+     (fn [x] (concat (:lines chunk) x)))
     (rest chunks))
    :else
    (recur (assoc result (:name chunk) chunk)
@@ -299,6 +299,9 @@
  [c]
  (some? (output-path c)))
 
+(defn is-chunk-reference? [c]
+  (= :chunk-reference (:type c)))
+
 (defn build-chunk-crossrefs 
  "Accepts a sequence of chunks, some of which may be documentation chunks 
   and some of which may be code chunks, and builds a map of maps indicating
@@ -306,10 +309,10 @@
 
   {\"asdf\" : {\"def\": true, \"abc\": false }}
 
-  Hypothetically. This map could be sparse."
+  This map is not sparse. It will include some entry for each chunk in the original list."
  [chunks]
  (letfn [(add-references [chunk result]
-          (let [ref-lines (filter #(= :chunk-reference (:type %)) (:lines chunk))
+          (let [ref-lines (filter is-chunk-reference? (:lines chunk))
                 chunk-adjacent (get result (:name chunk))
                 additions (interleave (map :name ref-lines) (repeat true))]
           (if (empty? additions)
@@ -325,19 +328,95 @@
             :else (recur cs (add-references c result))
            )
           ))]
- (build-chunk-crossrefs-inner chunks {})))
+ (build-chunk-crossrefs-inner chunks (apply (partial assoc {})
+                                      (interleave (map :name (filter is-code-chunk? chunks)) (repeat {}))))))
 
 (defn extract-output-chunks [webstr]
     (let [[parse-tree remaining-input] (web webstr)]
           (if (empty? remaining-input)
             (filter has-output-path? 
-                   (vals (extract-inner {} parse-tree)))
+                   (vals (combine-code-chunks {} parse-tree)))
             (error "Invalid web"))))
 
-(defn tangle "Accepts a list of files, extracts code and writes it out."
+; Let's take a step back and think about tangling. We want to take the input
+; text and parse it. If there is an error, we stop and report the error.
+; If not, we want to expand the code chunks out. Finally, we want to output
+; chunks. If a user passes in a specific chunk or set of chunks, we dump those
+; out. Otherwise, we want to find all those chunks with output paths and write
+; them out.
+
+(defn has-incoming-edges? [xrefs cn]
+ (some #(some? (get % cn)) (vals xrefs)))
+
+(defn find-candidate-nodes [xrefs]
+ (filter (comp not (partial has-incoming-edges? xrefs)) (keys xrefs)))
+
+(defn ts-inner [res xrefs]
+ (let [candidates (find-candidate-nodes xrefs)]
+  (if (empty? candidates) [res xrefs]
+   (recur (cons (first candidates) res)
+          (dissoc xrefs (first candidates))))))
+
+(defn topologically-sort-chunks 
+ "Accepts a map of code chunks (name -> value) and produces a topologically sorted list of chunk IDs."
+ [chunks]
+ (let [xrefs (build-chunk-crossrefs (vals chunks))
+       [sorted-names leftovers] (ts-inner [] xrefs)]
+    (if (empty? leftovers)
+     sorted-names
+     "ERROR! Circular reference.")
+ ))
+
+(defn expand-refs [chunk all-chunks]
+ (letfn [(expand-refs-inner [lines all-chunks result]
+          (let [line (first lines)]
+           (cond
+            (empty? lines) result
+            (is-chunk-reference? line) 
+                (recur (rest lines) all-chunks
+                 (concat (-> all-chunks (get (:name line)) :lines) result))
+            :else (recur (rest lines) all-chunks (cons line result))
+           )
+          )
+         )]
+ (assoc chunk :lines
+  (expand-refs-inner (:lines chunk) all-chunks []))
+))
+
+(defn expand-chunks [queue chunks]
+ (if (empty? queue)
+  chunks
+  (recur (rest queue)
+   (assoc chunks (first queue)
+    (expand-refs (get chunks (first queue)) chunks)))
+  )
+)
+
+(defn expand-code-refs 
+ "Accepts a map of chunks (the key being the name of the chunk, value being the unique value."
+ [chunks]
+ (let [chunk-seq (topologically-sort-chunks chunks)]
+  (expand-chunks chunk-seq chunks)
+ )
+)
+
+(defn refine-code-chunks [text]
+ (let [parse-tree (web text)]
+  (if (or (failure? parse-tree) (not (empty? (second parse-tree))))
+   nil
+   (->> parse-tree
+        first
+        (filter is-code-chunk?)
+        (combine-code-chunks {})
+        expand-code-refs
+        ))))
+
+(defn tangle 
+ "Accepts a list of files, extracts code and writes it out."
  [files]
  ; TODO: handle chunk references
  ; TODO: handle targeted chunk case 
+ ; TODO: rewrite this to use refine code chunks
   (doseq [f files]
     (let [output-chunks (extract-output-chunks (slurp f))]
       (doseq [chunk output-chunks]
