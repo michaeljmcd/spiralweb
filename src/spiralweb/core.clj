@@ -408,19 +408,36 @@
         first
         (filter is-code-chunk?)
         (combine-code-chunks {})
-        expand-code-refs
-        ))))
+        expand-code-refs))))
+
+(defn chunk-content [c]
+ (->> c :lines (map :value) (apply str)))
+
+(defn output-code-chunks [chunks]
+ (doseq [chunk chunks]
+  (if (has-output-path? chunk)
+   (spit (output-path chunk) (chunk-content chunk))
+   (println (chunk-content chunk)))))
 
 (defn tangle 
  "Accepts a list of files, extracts code and writes it out."
- [files]
- ; TODO: handle chunk references
- ; TODO: handle targeted chunk case 
- ; TODO: rewrite this to use refine code chunks
-  (doseq [f files]
-    (let [output-chunks (extract-output-chunks (slurp f))]
-      (doseq [chunk output-chunks]
-       (spit (output-path chunk) (apply str (:lines chunk)))))))
+ ([files output-chunks]
+    (doseq [f files]
+     ; TODO: error handling
+     (let [chunks (refine-code-chunks (slurp f))]
+      (output-code-chunks
+          (cond
+           (not (empty? output-chunks))
+               (filter (fn [x] 
+                        (contains? (set output-chunks) (:name x))) 
+                       (vals chunks))
+           (contains? chunks "*")
+            (list (get chunks "*"))
+           :else
+            (filter has-output-path? (vals chunks))
+          )))))
+ ([files] (tangle files nil)))
+
 
 (def cli-options
   [["-c" "--chunk CHUNK"]
