@@ -331,13 +331,6 @@
  (build-chunk-crossrefs-inner chunks (apply (partial assoc {})
                                       (interleave (map :name (filter is-code-chunk? chunks)) (repeat {}))))))
 
-(defn extract-output-chunks [webstr]
-    (let [[parse-tree remaining-input] (web webstr)]
-          (if (empty? remaining-input)
-            (filter has-output-path? 
-                   (vals (combine-code-chunks {} parse-tree)))
-            (error "Invalid web"))))
-
 ; Let's take a step back and think about tangling. We want to take the input
 ; text and parse it. If there is an error, we stop and report the error.
 ; If not, we want to expand the code chunks out. Finally, we want to output
