@@ -402,22 +402,25 @@
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
 
+(defn tangle-text [txt output-chunks]
+    (let [chunks (refine-code-chunks txt)]
+           (output-code-chunks
+            (cond
+              (not (empty? output-chunks))
+              (filter (fn [x]
+                        (contains? (set output-chunks) (:name x)))
+                      (vals chunks))
+              (contains? chunks "*")
+              (list (get chunks "*"))
+              :else
+              (filter has-output-path? (vals chunks))))))
+
 (defn tangle
   "Accepts a list of files, extracts code and writes it out."
   ([files output-chunks]
    (doseq [f files]
      ; TODO: error handling
-     (let [chunks (refine-code-chunks (slurp f))]
-       (output-code-chunks
-        (cond
-          (not (empty? output-chunks))
-          (filter (fn [x]
-                    (contains? (set output-chunks) (:name x)))
-                  (vals chunks))
-          (contains? chunks "*")
-          (list (get chunks "*"))
-          :else
-          (filter has-output-path? (vals chunks)))))))
+     (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
 
 (def cli-options
