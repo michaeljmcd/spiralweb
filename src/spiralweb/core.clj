@@ -336,22 +336,21 @@
 ; out. Otherwise, we want to find all those chunks with output paths and write
 ; them out.
 
-(defn has-incoming-edges? [xrefs cn]
-  (some #(some? (get % cn)) (vals xrefs)))
-
-(defn find-candidate-nodes [xrefs]
-  (filter (comp not (partial has-incoming-edges? xrefs)) (keys xrefs)))
-
-(defn ts-inner [res xrefs]
-  (let [candidates (find-candidate-nodes xrefs)]
-    (if (empty? candidates) [res xrefs]
-        (recur (cons (first candidates) res)
-               (dissoc xrefs (first candidates))))))
-
 (defn topologically-sort-chunks
   "Accepts a map of code chunks (name -> value) and produces a topologically sorted list of chunk IDs."
   [chunks]
-  (let [xrefs (build-chunk-crossrefs (vals chunks))
+  (let [has-incoming-edges? (fn [xrefs cn]
+                              (some #(some? (get % cn)) (vals xrefs)))
+
+        find-candidate-nodes (fn [xrefs]
+                               (filter (comp not (partial has-incoming-edges? xrefs)) (keys xrefs)))
+
+        ts-inner (fn [res xrefs]
+                   (let [candidates (find-candidate-nodes xrefs)]
+                     (if (empty? candidates) [res xrefs]
+                         (recur (cons (first candidates) res)
+                                (dissoc xrefs (first candidates))))))
+        xrefs (build-chunk-crossrefs (vals chunks))
         [sorted-names leftovers] (ts-inner [] xrefs)]
     (if (empty? leftovers)
       sorted-names
@@ -403,17 +402,17 @@
       (println (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
-    (let [chunks (refine-code-chunks txt)]
-           (output-code-chunks
-            (cond
-              (not (empty? output-chunks))
-              (filter (fn [x]
-                        (contains? (set output-chunks) (:name x)))
-                      (vals chunks))
-              (contains? chunks "*")
-              (list (get chunks "*"))
-              :else
-              (filter has-output-path? (vals chunks))))))
+  (let [chunks (refine-code-chunks txt)]
+    (output-code-chunks
+     (cond
+       (not (empty? output-chunks))
+       (filter (fn [x]
+                 (contains? (set output-chunks) (:name x)))
+               (vals chunks))
+       (contains? chunks "*")
+       (list (get chunks "*"))
+       :else
+       (filter has-output-path? (vals chunks))))))
 
 (defn tangle
   "Accepts a list of files, extracts code and writes it out."
