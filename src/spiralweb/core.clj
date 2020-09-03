@@ -19,6 +19,12 @@
 
 (def success? (comp not failure?))
 
+(defn input-consumed? [r]
+ (and (success? r)
+      (not (empty? (second r)))))
+
+(def input-remaining? (comp not input-consumed?))
+
 (defn parser-name [parser] (-> parser meta :parser))
 
 (defn match [c]
@@ -384,7 +390,8 @@
 
 (defn refine-code-chunks [text]
   (let [parse-tree (web text)]
-    (if (or (failure? parse-tree) (not (empty? (second parse-tree))))
+    (if (or (failure? parse-tree)
+            (input-remaining? parse-tree))
       nil
       (->> parse-tree
            first
