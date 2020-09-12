@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [starts-with? trim index-of]]
             [clojure.tools.cli :refer [parse-opts]]
             [taoensso.timbre :as t :refer [debug error]]
-            [spiralweb.parser :refer :all]))
+            [edessa.parser :refer :all]))
 
 ; Spiralweb language definition
 
