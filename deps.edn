@@ -2,6 +2,7 @@
  :deps    {; CLI dependencies.
            org.clojure/tools.cli {:mvn/version "1.0.194"}
            com.taoensso/timbre {:mvn/version "4.10.0"}
+           github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa" :sha "de12e27e940c3d2c5b8ac7963480e1fd21416f1f"}
  }
  :aliases  {
     :test     {:extra-paths ["test"]

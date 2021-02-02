@@ -1,6 +1,7 @@
 (ns spiralweb.core-test
  (:require [clojure.test :refer :all]
            [spiralweb.core :refer :all]
+           [edessa.parser :refer [success? failure?]]
            [taoensso.timbre :as t :refer [debug error]]))
 
 ; Token tests
