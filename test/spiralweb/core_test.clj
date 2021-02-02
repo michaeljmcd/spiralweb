@@ -26,5 +26,4 @@
 (deftest tangle-tests
  (let [circular-text "@code a\n@<b>\n@end\n@code b\n@<a>\n@end"
        result (tangle-text circular-text [])]
-    (is (= nil result)))
- )
+    (is (= nil result))))
