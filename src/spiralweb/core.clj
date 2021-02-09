@@ -261,11 +261,12 @@
     (expand-chunks chunk-seq chunks)))
 
 (defn refine-code-chunks [text]
-  (let [parse-tree (web text)]
+  (let [parse-tree (apply-parser web text)]
     (if (or (failure? parse-tree)
             (input-remaining? parse-tree))
       nil
       (->> parse-tree
+           result
            first
            (filter is-code-chunk?)
            (combine-code-chunks {})

@@ -1,15 +1,15 @@
 {:paths   ["src"]
- :deps    {; CLI dependencies.
-           org.clojure/tools.cli {:mvn/version "1.0.194"}
+ :deps    {org.clojure/tools.cli {:mvn/version "1.0.194"}
            com.taoensso/timbre {:mvn/version "4.10.0"}
-           github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa" :sha "de12e27e940c3d2c5b8ac7963480e1fd21416f1f"}
+           github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa"
+                                      :sha "b3a139cf6cd7667358b3d5f28ffed8ab099decb9"}
  }
  :aliases  {
-    :test     {:extra-paths ["test"]
-               :extra-deps  {lambdaisland/kaocha {:mvn/version "1.0.663"}}
-               :main-opts   ["-m" "kaocha.runner"]}
+     :test     {:extra-paths ["test" "test-resources"]
+                   :extra-deps  {lambdaisland/kaocha {:mvn/version "1.0.732"}}
+                   }   
      :outdated {:extra-deps {olical/depot {:mvn/version "2.0.1"}}
                           :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
-     :cljfmt {:extra-deps {cljfmt {:mvn/version "0.6.4"}}
+     :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
               :main-opts ["-m" "cljfmt.main"]}
  }}
