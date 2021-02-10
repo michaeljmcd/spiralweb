@@ -7,77 +7,73 @@
 ; Spiralweb language definition
 
 (def non-breaking-ws
-  (with-meta
-    (one-of [\space \tab])
-    {:parser "Non-breaking whitespace"}))
-
+  (parser (one-of [\space \tab])
+          :name "Non-breaking whitespace"))
 (def nl
-  (using (match \newline)
-         (fn [x] {:type :newline :value (str \newline)})))
+  (parser (match \newline)
+          :name "Newline"
+          :using (fn [x] {:type :newline :value (str \newline)})))
 
 (def t-text
-  (with-meta
-    (using
+    (parser
      (plus
-      (with-meta
-        (not-one-of [\@ \[ \] \= \, \newline])
-        {:parser "Non-Reserved Characters"}))
-     (fn [x] {:type :text :value (apply str x)}))
-    {:parser "Text Token"}))
+        (parser (not-one-of [\@ \[ \] \= \, \newline])
+                :name"Non-Reserved Characters") )
+     :using (fn [x] {:type :text :value (apply str x)})
+     :name "Text Token"))
 
 (def code-end
-  (with-meta
-    (using (literal "@end")
-           (fn [_] {:type :code-end :value "@end"}))
-    {:parser "Code End"}))
+  (parser (literal "@end")
+          :using (fn [_] {:type :code-end :value "@end"})
+          :name "Code End" ))
 
 (def doc-directive
-  (using (literal "@doc")
-         (fn [_] {:type :doc-directive :value "@doc"})))
+  (parser (literal "@doc")
+          :using (fn [_] {:type :doc-directive :value "@doc"})))
 
 (def code-directive
-  (using (literal "@code")
-         (fn [_] {:type :code-directive :value "@code"})))
+  (parser (literal "@code")
+          :using (fn [_] {:type :code-directive :value "@code"})))
 
 (def at-directive
-  (using (literal "@@")
-         (fn [_] {:type :at-directive :value "@@"})))
+  (parser (literal "@@")
+         :using (fn [_] {:type :at-directive :value "@@"})))
 
 (def comma
-  (using (match \,)
-         (fn [_] {:type :comma :value ","})))
+  (parser (match \,)
+          :using (fn [_] {:type :comma :value ","})))
 
 (def t-equals
-  (using (match \=)
-         (fn [_] {:type :equals :value "="})))
+  (parser (match \=)
+          :using (fn [_] {:type :equals :value "="})))
 
 (def open-proplist
-  (using (match \[)
-         (fn [_] {:type :open-proplist :value "["})))
+  (parser (match \[)
+         :using (fn [_] {:type :open-proplist :value "["})))
 
 (def close-proplist
-  (using (match \])
-         (fn [_] {:type :close-proplist :value "]"})))
+  (parser (match \])
+          :using (fn [_] {:type :close-proplist :value "]"})))
 
 (def chunkref
-  (with-meta
-    (using
+  (parser
      (then
       (star non-breaking-ws)
       (match \@) (match \<)
       (plus (not-one-of [\> \newline]))
       (match \>)
       (star non-breaking-ws))
+     :using
      (fn [x]
        (let [ref-text (apply str x)
              trimmed-ref-text (trim ref-text)]
          {:type :chunk-reference
           :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-          :indent-level (index-of ref-text "@<")})))
-    {:parser "Chunk Reference"}))
+          :indent-level (index-of ref-text "@<")}))
+    :name "Chunk Reference"))
 
 (def docline
-  (with-meta
+  (parser
     (choice t-text
             nl
             at-directive
@@ -85,10 +81,10 @@
             t-equals
             open-proplist
             close-proplist)
-    {:parser "Docline"}))
+    :name "Docline"))
 
 (def codeline
-  (with-meta
+  (parser
     (choice t-text
             nl
             at-directive
@@ -97,12 +93,13 @@
             open-proplist
             close-proplist
             chunkref)
-    {:parser "Codeline"}))
+    :name "Codeline"))
 
 (def doclines (plus docline))
 
 (def property
-  (using (then t-text t-equals t-text)
+  (parser (then t-text t-equals t-text)
+         :using
          (fn [x]
            (let [scrubbed (filter (comp not nil?) x)]
              {:type :property :value {:name (-> scrubbed first :value trim)
@@ -111,7 +108,8 @@
 (def property-sequence (choice (then comma property) property))
 
 (def property-list
-  (using (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
+  (parser (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
+          :using
          (fn [x]
            {:type :properties :value
             (filter (fn [y] (and (not (nil? y))
@@ -120,7 +118,8 @@
 (defn- prop-token? [t] (= :properties (:type t)))
 
 (def doc-definition
-  (using (then doc-directive t-text (optional property-list) nl doclines)
+  (parser (then doc-directive t-text (optional property-list) nl doclines)
+          :using
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
@@ -130,7 +129,8 @@
 (defn code-end? [t] (= (:type t) :code-end))
 
 (def code-definition
-  (using (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
+  (parser (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
+          :using
          (fn [x]
            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                  props (flatten (map :value (filter prop-token? all-tokens)))]
