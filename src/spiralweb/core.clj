@@ -15,17 +15,17 @@
           :using (fn [x] {:type :newline :value (str \newline)})))
 
 (def t-text
-    (parser
-     (plus
-        (parser (not-one-of [\@ \[ \] \= \, \newline])
-                :name"Non-Reserved Characters") )
-     :using (fn [x] {:type :text :value (apply str x)})
-     :name "Text Token"))
+  (parser
+   (plus
+    (parser (not-one-of [\@ \[ \] \= \, \newline])
+            :name "Non-Reserved Characters"))
+   :using (fn [x] {:type :text :value (apply str x)})
+   :name "Text Token"))
 
 (def code-end
   (parser (literal "@end")
           :using (fn [_] {:type :code-end :value "@end"})
-          :name "Code End" ))
+          :name "Code End"))
 
 (def doc-directive
   (parser (literal "@doc")
@@ -37,7 +37,7 @@
 
 (def at-directive
   (parser (literal "@@")
-         :using (fn [_] {:type :at-directive :value "@@"})))
+          :using (fn [_] {:type :at-directive :value "@@"})))
 
 (def comma
   (parser (match \,)
@@ -49,7 +49,7 @@
 
 (def open-proplist
   (parser (match \[)
-         :using (fn [_] {:type :open-proplist :value "["})))
+          :using (fn [_] {:type :open-proplist :value "["})))
 
 (def close-proplist
   (parser (match \])
@@ -57,85 +57,85 @@
 
 (def chunkref
   (parser
-     (then
-      (star non-breaking-ws)
-      (match \@) (match \<)
-      (plus (not-one-of [\> \newline]))
-      (match \>)
-      (star non-breaking-ws))
-     :using
-     (fn [x]
-       (let [ref-text (apply str x)
-             trimmed-ref-text (trim ref-text)]
-         {:type :chunk-reference
-          :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-          :indent-level (index-of ref-text "@<")}))
-    :name "Chunk Reference"))
+   (then
+    (star non-breaking-ws)
+    (match \@) (match \<)
+    (plus (not-one-of [\> \newline]))
+    (match \>)
+    (star non-breaking-ws))
+   :using
+   (fn [x]
+     (let [ref-text (apply str x)
+           trimmed-ref-text (trim ref-text)]
+       {:type :chunk-reference
+        :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
+        :indent-level (index-of ref-text "@<")}))
+   :name "Chunk Reference"))
 
 (def docline
   (parser
-    (choice t-text
-            nl
-            at-directive
-            comma
-            t-equals
-            open-proplist
-            close-proplist)
-    :name "Docline"))
+   (choice t-text
+           nl
+           at-directive
+           comma
+           t-equals
+           open-proplist
+           close-proplist)
+   :name "Docline"))
 
 (def codeline
   (parser
-    (choice t-text
-            nl
-            at-directive
-            comma
-            t-equals
-            open-proplist
-            close-proplist
-            chunkref)
-    :name "Codeline"))
+   (choice t-text
+           nl
+           at-directive
+           comma
+           t-equals
+           open-proplist
+           close-proplist
+           chunkref)
+   :name "Codeline"))
 
 (def doclines (plus docline))
 
 (def property
   (parser (then t-text t-equals t-text)
-         :using
-         (fn [x]
-           (let [scrubbed (filter (comp not nil?) x)]
-             {:type :property :value {:name (-> scrubbed first :value trim)
-                                      :value (-> scrubbed (nth 2) :value trim)}}))))
+          :using
+          (fn [x]
+            (let [scrubbed (filter (comp not nil?) x)]
+              {:type :property :value {:name (-> scrubbed first :value trim)
+                                       :value (-> scrubbed (nth 2) :value trim)}}))))
 
 (def property-sequence (choice (then comma property) property))
 
 (def property-list
   (parser (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
           :using
-         (fn [x]
-           {:type :properties :value
-            (filter (fn [y] (and (not (nil? y))
-                                 (= :property (:type y)))) x)})))
+          (fn [x]
+            {:type :properties :value
+             (filter (fn [y] (and (not (nil? y))
+                                  (= :property (:type y)))) x)})))
 
 (defn- prop-token? [t] (= :properties (:type t)))
 
 (def doc-definition
   (parser (then doc-directive t-text (optional property-list) nl doclines)
           :using
-         (fn [x]
-           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
-                 props (flatten (map :value (filter prop-token? all-tokens)))]
-             {:type :doc :options props
-              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
+          (fn [x]
+            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+                  props (flatten (map :value (filter prop-token? all-tokens)))]
+              {:type :doc :options props
+               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (defn code-end? [t] (= (:type t) :code-end))
 
 (def code-definition
   (parser (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
           :using
-         (fn [x]
-           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
-                 props (flatten (map :value (filter prop-token? all-tokens)))]
-             {:type :code :options props
-              :name (-> n :value trim) :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
+          (fn [x]
+            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+                  props (flatten (map :value (filter prop-token? all-tokens)))]
+              {:type :code :options props
+               :name (-> n :value trim) :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
 (def web (star (choice code-definition doc-definition doclines)))
 
