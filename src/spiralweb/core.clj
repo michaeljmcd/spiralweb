@@ -12,7 +12,7 @@
 (def nl
   (parser (match \newline)
           :name "Newline"
-          :using (fn [x] {:type :newline :value (str \newline)})))
+          :using (fn [_] {:type :newline :value (str \newline)})))
 
 (def t-text
   (parser
