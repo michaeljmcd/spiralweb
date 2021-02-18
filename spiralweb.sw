@@ -129,100 +129,258 @@ help:
 
 ## Parsing a Web ##
 
-In order to parse a web, we will use
-PLY^[plyWebsite] for both lexing and parsing. A hand-written parser was
-briefly considered, but avoided as being too ponderous. Some experiments
-were made with pyparsing, but its default policy of ignoring whitespace,
-while ordinarily useful, proved annoying to work around. Some reading
-was done on LEPL, but it seemed very similar to pyparsing. In the end,
-going old-school worked out very, very well.
+We will be using a recursive descent parser implemented with a library for
+Clojure named Edessa^[edessaWebsite]. This means that we will use semantic
+actions at the terminals to the grammar that will produce our internal
+representation of a web. We will build this grammar up in two layers within
+the grammar, one that deals in in the core tokens and another layer that
+assembles those into chunks off of which the remaining operations will be
+performed.
 
-Yes, that statement was past tense. The bootstrapper had to be written
-without literate goodness (or use something like noweb, which would
-add yet another layer to the build process--one that was just not
-necessary).
+Our representation for tokens will be simple maps with `:type` and `:value`
+keys on them, like the following for the `@doc` token:
 
-### Representation of a Web ###
+    {:type :doc-directive :value "@doc"}
 
-Before parsing a web, we will examine our representation for one. The
-classes derived here will be how we represent the file in memory and will
-also provide the methods that provide the real operations (i.e. tangling
-and weaving) that we wish to perform on a web.
+This will keep our representations fairly light and easy to work with.
 
-We define a web as a list of chunks upon which we can perform operations,
-and will place all of these classes in a module entitled `api` for use by
-other sections. Of note is the fact that, when we get around to making
-SpiralWeb fully extensible, `api` will be the public-facing aspect of the
-source.
+### Tokens ###
 
-@code API Classes [out=spiralweb/model.py,lang=python]
-import sys
+We can identify a list of tokens based on our earlier description of the
+SpiralWeb language.
 
-@<SpiralWeb chunk class definitions>
-@<SpiralWeb class definitions>
+The first set of tokens are the directives that begin and end chunks.
+
+* `@doc` - begin a documentation chunk.
+* `@code` - begin a code chunk.
+* `@end` - to end a code block.
+
+The existence of these three implies a fourth, a way to escape the at
+symbol, which we designated as `@@`. Document and code chunks can have
+property lists, which imply the need for the following tokens.
+
+* `[`
+* `]`
+* `=`
+* `,`
+
+Finally, we have long strings of text and places where whitespace is
+permitted. From this list 
+
+@code Tokens
+(def non-breaking-ws
+  (parser (one-of [\space \tab])
+          :name "Non-breaking whitespace"))
+(def nl
+  (parser (match \newline)
+          :name "Newline"
+          :using (fn [_] {:type :newline :value (str \newline)})))
+
+(def t-text
+  (parser
+   (plus
+    (parser (not-one-of [\@ \[ \] \= \, \newline])
+            :name "Non-Reserved Characters"))
+   :using (fn [x] {:type :text :value (apply str x)})
+   :name "Text Token"))
+
+(def code-end
+  (parser (literal "@end")
+          :using (fn [_] {:type :code-end :value "@end"})
+          :name "Code End"))
+
+(def doc-directive
+  (parser (literal "@doc")
+          :using (fn [_] {:type :doc-directive :value "@doc"})))
+
+(def code-directive
+  (parser (literal "@code")
+          :using (fn [_] {:type :code-directive :value "@code"})))
+
+(def at-directive
+  (parser (literal "@@")
+          :using (fn [_] {:type :at-directive :value "@@"})))
+
+(def comma
+  (parser (match \,)
+          :using (fn [_] {:type :comma :value ","})))
+
+(def t-equals
+  (parser (match \=)
+          :using (fn [_] {:type :equals :value "="})))
+
+(def open-proplist
+  (parser (match \[)
+          :using (fn [_] {:type :open-proplist :value "["})))
+
+(def close-proplist
+  (parser (match \])
+          :using (fn [_] {:type :close-proplist :value "]"})))
 @=
 
-The main class to represent a web is `SpiralWeb` and its state is
-comparably small--just a list of chunks and the base directory from which
-all operations are being performed (normally, this is the base path to the
-literate file, regardless of the location from which the
-application was invoked). Beyond this, we provide tangle and weave
-operations to actually perform the two major functions of a literate
-system.
+### Grammar ###
 
-@code SpiralWeb class definitions [lang=python]
-class SpiralWeb():
-    chunks = []
-    baseDir = ''
+A web is, at the end of the day, a web of chunks. This idea is easy to
+represent. Most of these rules require predicates to match tokens. We will
+define these first in order to simplify what follows.
 
-    def __init__(self, chunks=[], baseDir=''):
-        self.chunks = chunks
-        self.baseDir = baseDir
-
-        for chunk in self.chunks:
-            chunk.setParent(self)
-
-    def getChunk(self, name):
-        for chunk in self.chunks:
-            if chunk.name == name:
-                return chunk
-
-        return None
-
-    @<Tangle Method>
-    @<Weave Method>
+@code Token Predicates
+(defn- code-end? [t] (= (:type t) :code-end))
+(defn- prop-token? [t] (= (:type t) :properties))
 @=
 
-In order to create more separation between the command-line presentation
-layer and our main logic, we will define functions to parse input, given
-the options we expect. In order to make this method generic, we will allow
-the path parameter to be `None`. When this occurs, we assume that we need
-to read `stdin` to get the input. In either event, we load the input into a
-string, then parse it, returning the resultant `SpiralWeb` object.
+Which leads us to the main rule for parsing a web.
 
-@code Alternate SpiralWeb creation functions [out=spiralweb/api.py,lang=python]
-import sys
-from .parser import parse_webs
-from .model import SpiralWeb
-
-def parseSwFile(path):
-    handle = None
-
-    if path == None:
-        handle = sys.stdin
-        path = 'stdin'
-    else:
-        handle = open(path, 'r')
-
-    fileInput = handle.read()
-    handle.close()
-
-    chunkList = parse_webs({path: fileInput})[path]
-
-    return SpiralWeb(chunks=chunkList)
+@code Web Rule
+(def web (star 
+          (choice 
+           code-definition 
+           doc-definition 
+           doclines)))
 @=
 
-#### Tangling ####
+The definition starts with the explicit chunk definitions and then uses
+`doclines` as a fallback. Let's consider the code definition first.
+
+@code Code Chunk Rule
+(def code-definition
+  (parser (then 
+           code-directive 
+           t-text 
+           (optional property-list) 
+           nl 
+           (plus codeline)
+           code-end)
+          :using
+          (fn [x]
+            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+                  props (flatten (map :value (filter prop-token? all-tokens)))]
+              {:type :code
+               :options props
+               :name (-> n :value trim)
+               :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
+@=
+
+Both code and documentation chunks allow properties to be associated with
+the chunk. This is to support output and formatting options. A property
+list is just a series of name-value pairs surrounded by brackets.
+
+@code Property List Rule
+(def property
+  (parser (then
+           t-text 
+           t-equals
+           t-text)
+          :using
+          (fn [x]
+            (let [scrubbed (filter (comp not nil?) x)]
+              {:type :property
+              :value {:name (-> scrubbed first :value trim)
+              :value (-> scrubbed (nth 2) :value trim)}}))))
+
+(def property-sequence (choice 
+                        (then comma property)
+                        property))
+
+(def property-list
+  (parser (then open-proplist
+           (star property-sequence)
+           close-proplist
+           (star non-breaking-ws))
+          :using
+          (fn [x]
+            {:type :properties :value
+             (filter (fn [y] (and (not (nil? y))
+                                  (= :property (:type y)))) x)})))
+
+@=
+
+The core content of a code chunk is obviously a series of lines of code.
+
+@code Code Line Rule
+(def codeline
+  (parser
+   (choice t-text
+           nl
+           at-directive
+           comma
+           t-equals
+           open-proplist
+           close-proplist
+           chunkref)
+   :name "Codeline"))
+@=
+
+Most of these options are simply unescaped bits of text. The one chunk that
+stands out is chunk references. These are the heart of a web, the linking
+between different code chunks.
+
+@code Chunk Reference Rule
+(def chunkref
+  (parser
+   (then
+    (star non-breaking-ws)
+    (match \@) (match \<)
+    (plus (not-one-of [\> \newline]))
+    (match \>)
+    (star non-breaking-ws))
+   :using
+   (fn [x]
+     (let [ref-text (apply str x)
+           trimmed-ref-text (trim ref-text)]
+       {:type :chunk-reference
+        :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
+        :indent-level (index-of ref-text "@<")}))
+   :name "Chunk Reference"))
+@=
+
+Rolling all the way back up to the top, we have ignored document lines.
+This is largely because document lines are easy so we define it here.
+
+@code Document Line Rule
+(def docline
+  (parser
+   (choice t-text
+           nl
+           at-directive
+           comma
+           t-equals
+           open-proplist
+           close-proplist)
+   :name "Docline"))
+
+(def doclines (plus docline))
+@=
+
+Now, Clojure's loading encourages a bottom-up listing of functionality
+so we will restate our parsing rules accordingly.
+
+@code Parsing Rules
+@<Document Line Rule>
+@<Chunk Reference Rule>
+@<Property List Rule>
+@<Code Line Rule>
+@<Code Chunk Rule>
+@<Web Rule>
+@=
+
+### Conclusion ###
+
+In order to make all this code useful, we need to assemble it into a module
+to be used in our codebase.
+
+@code [out=src/spiralweb/parser.clj]
+(ns spiralweb.parser
+  (:require [clojure.string :refer [starts-with? trim index-of]]
+            [taoensso.timbre :as t :refer [debug error]]
+            [edessa.parser :refer :all]))
+
+@<Tokens>
+@<Token Predicates>
+@<Parsing Rules>
+@=
+
+## Tangling ##
 
 Next, we turn our attention to the `tangle` method, as it is the one needed
 to get to the point where we can weave. Tangling occurrs in two phases.
@@ -284,7 +442,7 @@ def tangle(self,chunks=None):
     return outputs
 @=
 
-#### Weaving ####
+## Weaving ##
 
 Once we have tangling, we can turn our attention to weaving documentation.
 Tangling is the simpler operation of the two, since it merely extracts and
@@ -600,336 +758,6 @@ class SpiralWebRef():
 
 @=
 
-### Lexical Analysis ###
-
-We will package both the lexer and the parser into a single file,
-`parser.py` and export a single function to return a list of objects,
-representing the list of all web files passed in.
-
-@code Lexer/Parser [out=spiralweb/parser.py,lang=python]
-import sys
-import os
-import io
-import ply.lex as lex
-import ply.yacc as yacc
-from .model import SpiralWebChunk, SpiralWebRef, SpiralWeb
-
-@<Lexer Class>
-@<Parser Class>
-@=
-
-As parsing is a sequential, two-step model (first lexing, then parsing), it
-makes sense to break down the lexer first. Our token list is short and
-actually fairly simple. We have two directives (`@@doc` and `@@code`) that
-form our first two tokens. Then, there is the escaped at symbol (`@@@@`).
-
-The portion of our target language that creates the most tokens is the
-property list that can accompany any `@@doc` or `@@code` directive. As we
-saw above, a property list as the form `[key=value?(,key=value)*]`.
-Therefore, we can easily add the tokens `[`, `=`, `,` and `]` to our list.
-
-Since whitespace is important, for either code or documentation chunks, we
-need to add a newline token to the list.
-
-Finally, within a code directive, we need the ability to reference a chunk
-defined elsewhere, defined above as `@@<Chunk name>`. Before moving to the
-code, we list out our tokens in EBNF:
-
-    document directive = "@@doc" 
-    code directive = "@@code"
-    code end directive = "@@="
-    open property list = "["
-    close property list = "]"
-    comma = ","
-    equals = "="
-    at = "@@@@"
-    chunk reference = whitepace* "@@<" text ">"
-    newline = "\n"
-    text = "[^@@\[\]=,\n]+"
-
-The only real points worthy of mention is the chunk reference whitespace
-must be retained on its way to the parser in order to preserve
-indentation.
-
-@code Lexer Class [lang=python]
-# Lexing definitions
-
-class SpiralWebLexer:
-    tokens = ('DOC_DIRECTIVE', 
-              'OPEN_PROPERTY_LIST',
-              'CLOSE_PROPERTY_LIST',
-              'EQUALS',
-              'COMMA',
-              'CHUNK_REFERENCE',
-              'CODE_DIRECTIVE',
-              'CODE_END_DIRECTIVE',
-              'NEWLINE',
-              'AT_DIRECTIVE',
-              'TEXT')
-
-    t_TEXT = '[^@@\[\]=,\n]+'
-    t_COMMA = r','
-    t_DOC_DIRECTIVE = r'@@doc'
-    t_CODE_DIRECTIVE = r'@@code'
-    t_CODE_END_DIRECTIVE = r'@@='
-    t_OPEN_PROPERTY_LIST = r'\['
-    t_CLOSE_PROPERTY_LIST = r']'
-    t_EQUALS = r'='
-
-    def t_AT_DIRECTIVE(self, t):
-        r'@@@@'
-        t.value = '@@'
-        return t
-
-    def t_CHUNK_REFERENCE(self, t):
-        r'[ \t]*@@<[^\]\n]+>[ \t]*'
-        inputString = t.value.rstrip()
-        refStart = inputString.find('@@<')
-
-        t.value = {'indent' : inputString[0:refStart],
-                   'ref' : inputString[refStart+2:len(inputString)-1]}
-        return t
-
-    def t_NEWLINE(self, t):
-        r'\n+'
-        t.lexer.lineno += len(t.value)
-        return t
-
-    def t_error(self, t):
-        print("Illegal character '%s' on line %s" % (t.value[0], t.lineno))
-        t.lexer.skip(1)
-
-    @<Lexical Analysis Utility Methods>
-@=
-
-In order to ease the setup of our lexer, we will define the following
-methods. 
-
-`build` is a factory method of sorts. Most of the options are fairly self
-explanatory. The most important ones are `debug` and `optimize`, whose
-values may not be entirely obvious. 
-
-PLY writes out `.out` files containing debugging information about the
-grammar. In production, we do not wish this to occur and so turn off
-"debugging".
-
-Similarly, we disable optimization because this polutes the target
-directory with Python files to represent a compiled lexer.
-
-If we do not set these two options, the result is that the application
-writes out junk files into the user's working directory.
-
-@code Lexical Analysis Utility Methods [lang=python]
-def build(self,**kwargs):
-    self.lexer = lex.lex(module=self, optimize=False, debug=False, **kwargs)
-
-def lex(self, input):
-    token_list = []
-
-    self.build()
-    self.lexer.input(input)
-
-    while True:
-        token = self.lexer.token()
-
-        if not token: break
-        token_list
-@=
-
-### Parsing ###
-
-The parser will require a little more work, but not much. The grammar is
-specified in its entirety below, but first we lay out the fundamental
-groundwork.
-
-We are really just building off of the groundwork provided by the lexer. In
-it essence, this grammar is simple. Perhaps too simple (I honestly believe
-that the simplicity of the grammar is what made the selection of
-higher-level parser builders inefficient--they are all designed to make
-hard grammars simple. Along the way, they make valid assumptions, usually
-about whitespace, that seriously interfere with a truly simple grammar).
-
-@code Parser Class [lang=python]
-# Parser definitions
-
-class SpiralWebParser:
-    starting = 'web'
-    tokens = []
-
-    def __init__(self):
-        self.tokens = SpiralWebLexer.tokens
-        self.build()
-
-    def p_error(self, p):
-        print("Syntax error at token %(name)s at line %(line)i" % \
-                {"line": p.lineno, "name": p.type })
-        yacc.errok()
-
-    def p_web(self, p):
-        '''web : webtl web
-               | empty'''
-        if len(p) == 3:
-            p[0] = [p[1]] + p[2]
-        else:
-            p[0] = []
-
-    def p_webtl(self, p):
-        '''webtl : codedefn
-                 | docdefn
-                 | doclines'''
-        p[0] = p[1]
-
-    def p_empty(self, p):
-        'empty :'
-        pass
-
-    def p_doclines(self, p):
-        '''doclines : TEXT
-                    | NEWLINE
-                    | AT_DIRECTIVE
-                    | COMMA
-                    | OPEN_PROPERTY_LIST
-                    | CLOSE_PROPERTY_LIST
-                    | EQUALS'''
-        doc = SpiralWebChunk()
-        doc.type = 'doc'
-        doc.name = ''
-        doc.options = {}
-        doc.lines = [p[1]]
-        p[0] = doc
-
-    def p_docdefn(self, p):
-        '''docdefn : DOC_DIRECTIVE TEXT optionalpropertylist NEWLINE doclines'''
-        doc = SpiralWebChunk()
-        doc.type = 'doc'
-        doc.name = p[2].strip()
-        doc.options = p[3]
-        doc.lines = [p[5]]
-        p[0] = doc
-
-    def p_codedefn(self, p):
-        '''codedefn : CODE_DIRECTIVE TEXT optionalpropertylist NEWLINE codelines CODE_END_DIRECTIVE
-                    '''
-        code = SpiralWebChunk()
-        code.type = 'code'
-        code.name = p[2].strip()
-        code.options = p[3]
-        code.lines = p[5]
-        p[0] = code
-
-    def p_codelines(self, p):
-        '''codelines : codeline codelines
-                     | empty'''
-        if len(p) == 3:
-           p[0] = [p[1]] + p[2]
-        else:
-           p[0] = []
-
-    def p_codeline(self, p):
-        '''codeline : TEXT 
-                    | NEWLINE
-                    | AT_DIRECTIVE
-                    | OPEN_PROPERTY_LIST
-                    | CLOSE_PROPERTY_LIST
-                    | COMMA
-                    | EQUALS
-                    | chunkref'''
-        doc = SpiralWebChunk()
-        doc.type = 'doc'
-        doc.name = ''
-        doc.options = {}
-        doc.lines = [p[1]]
-        p[0] = doc
-
-    def p_chunkref(self, p):
-        '''chunkref : CHUNK_REFERENCE'''
-        p[0] = SpiralWebRef(p[1]['ref'], p[1]['indent'])
-
-    def p_optionalpropertylist(self, p):
-        '''optionalpropertylist : propertylist 
-                                | empty'''
-
-        if p[1] == None:
-           p[0] = {}
-        else:
-            p[0] = p[1]
-
-    def p_propertylist(self, p):
-        '''propertylist : OPEN_PROPERTY_LIST propertysequence CLOSE_PROPERTY_LIST'''
-        p[0] = p[2]
-
-    def p_propertysequence(self, p):
-        '''propertysequence : empty 
-                            | propertysequence1'''
-        p[0] = p[1]
-
-    def p_propertysequence1(self, p):
-        '''propertysequence1 : property 
-                             | propertysequence1 COMMA property'''
-        if len(p) == 2:
-           p[0] = p[1]
-        else:
-           p[0] = dict(list(p[1].items()) + list(p[3].items()))
-
-    def p_property(self, p):
-        '''property : TEXT EQUALS TEXT'''
-        p[0] = {p[1] : p[3]}
-
-    @<Parsing Factory Functions>
-
-@<Parsing Interface Functions>
-@=
-
-Our factory functions for the parser closely mirror the ones set up for the
-lexer and the definitions follow below. The options are less than clear,
-but are set using the same rationale as the lexer. Refer to the commentary
-in that section for more information.
-
-@code Parsing Factory Functions [lang=python]
-def build(self,**kwargs):
-    self.lexer = SpiralWebLexer()
-    self.lexer.build()
-
-    self.parser = yacc.yacc(module=self, optimize=False, debug=False, **kwargs)
-
-def parse(self, input):
-    return self.parser.parse(input)
-@=
- 
-As we do not wish to leak implementation details to the interface, we will
-define a simple function to parse the input. In order to farther distance
-the parsing of a file from the basic input, we will define the function
-(dubbed `parse_webs`) to accept a hashtable with a key (usually the path to
-the web, but it could just be an arbitrary identifier) corresponding to a
-single string with the input. It then turns around and returns a hashtable
-with the same key, but instead of the string, a `SpiralWeb` object.
-
-We will implement the actions (i.e. whether to tangle, weave, or both)
-entirely to the application, which can call each web's interface at
-leisure.
-
-The one key wrinkle to handle here is that ply often prints text to stderr
-that we do not need. It looks like this should be fixed in Ply 3.11, which
-has not yet been released. In the meantime, we will capture and discard
-what it writes to standard error.
-
-@code Parsing Interface Functions [lang=python]
-def parse_webs(input_strings):
-    output = {}
-
-    stderr_ = sys.stderr
-    sys.stderr = io.StringIO("")
-
-    parser = SpiralWebParser()
-
-    for key, input in input_strings.items():
-        output[key] = parser.parse(input)
-
-    sys.stderr = stderr_
-
-    return output
-@=
-
 ## The Command Line Application ##
 
 In the previous sections, we defined the command-line syntax for the
@@ -1036,5 +864,6 @@ advancements we would like to see in the next version:
 
 [^argparse]: <http://docs.python.org/library/argparse.html#module-argparse>
 [^plyWebsite]: (PLY Website)[http://www.dabeaz.com/ply/]
+[^edessaWebsite]: (Edessa on Github)[https://github.com/michaeljmcd/edessa]
 
 // vim: set tw=75 ai: 
