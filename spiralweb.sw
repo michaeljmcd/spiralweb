@@ -765,90 +765,32 @@ invocation of `spiralweb`. Here we take that specification and combine it
 with the APIs we defined previously to put it all together and create a
 usable command line application.
 
-To perform command line argument parsing, we will use the `argparse`
-library that ships with Python[^argparse]. Once the command line arguments
-have been parsed, we will create one or more `SpiralWeb` objects (one for
-each file) and act on them as indicated by our arguments.
+Fortunately, this is relatively simple to assemble from the pieces that we
+have already assembled.
 
-The goal is for SpiralWeb to have a sort of CLI DSL, as is the case with
-many good command line utilities, like `git` or `svn`. Towards that end, we
-will use the subparser ability of `argparse` to build parsers to handle
-each of our commands. We can then act upon what is presented us.
+@code [out=src/spiralweb/cli.clj]
+(ns spiralweb.cli
+ (:require [spiralweb.core :refer [tangle]]
+           [clojure.tools.cli :refer [parse-opts]]
+           [taoensso.timbre :as t :refer [merge-config!]]))
 
-@code Main [out=spiralweb/__main__.py,lang=python]
-from spiralweb.api import parseSwFile
-import parser
-import argparse
-import sys
+(merge-config! {:level :error})
 
-def main():
-    argparser = argparse.ArgumentParser(prog='spiralweb', description='Literate programming system')
-    argparser.add_argument('--version', action='version', version='0.3')
+(def cli-options
+  [["-c" "--chunk CHUNK"]
+   ["-f" "--help"]])
 
-    subparsers = argparser.add_subparsers(dest='command')
-
-    tangle_parser = subparsers.add_parser('tangle', help='Extract source files from SpiralWeb literate webs')
-    tangle_parser.add_argument('files', nargs=argparse.REMAINDER)
-
-    weave_parser = subparsers.add_parser('weave', help='Generate documentation source files from SpiralWeb literate webs')
-    weave_parser.add_argument('files', nargs=argparse.REMAINDER)
-
-    help = subparsers.add_parser('help', help='Print help')
-
-    options = argparser.parse_args()
-
-    if options.command == 'help':
-        argparser.print_help()
-    else:
-        if len(options.files) == 0:
-            options.files.append(None)
-
-        for path in options.files:
-            try:
-                web = parseSwFile(path)
-
-                if options.command == 'tangle':
-                    web.tangle()
-                elif options.command == 'weave':
-                    web.weave()
-            except BaseException as e:
-                print("ERROR: " + str(e))
-
-if __name__ == '__main__':
-    main()
+(defn -main "The main entrypoint for running SpiralWeb as a command line tool."
+  [& args]
+  (let [opts (parse-opts args cli-options)]
+    (case (first (:arguments opts))
+      "tangle" (tangle (rest (:arguments opts)))
+      "help" (println "Help!"))))
 @=
 
-## Packaging ##
+### Packaging
 
-In order to ease installation, we will use setuptools. Because PLY
-generates code, we have no dependencies outside of the base Python install.
-
-@code setuptools file [out=setup.py,lang=python]
-from setuptools import setup, find_packages
-
-setup(
-        name = 'spiralweb',
-        version = '0.3',
-        packages = ['spiralweb'],
-        description = 'A lightweight-markup based literate programming system',    
-        author = 'Michael McDermott',
-        author_email = 'mmcdermott@@mad-computer-scientist.com',
-        url = 'https://github.com/michaeljmcd/spiralweb',
-        keywords = ['literate programming', 'lp', 'markdown'],
-        license = 'MIT',
-        install_requires = ['ply'],
-        entry_points = {
-            'console_scripts': [
-                'spiralweb = spiralweb.__main__:main'
-            ]},
-        long_description = """\
-SpiralWeb is a literate programming system that uses lightweight text
-markup (Markdown, with Pandoc extensions being the only option at the
-moment) as its default backend and provides simple, pain-free build
-integration to make building real-life systems easy.
-"""
-)
-@=
+TODO
 
 ## Conclusion ##
 
