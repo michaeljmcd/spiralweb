@@ -380,7 +380,9 @@ to be used in our codebase.
 @<Parsing Rules>
 @=
 
-## Tangling ##
+## Core Operations
+
+### Tangling
 
 Next, we turn our attention to the `tangle` method, as it is the one needed
 to get to the point where we can weave. Tangling occurrs in two phases.
@@ -406,43 +408,7 @@ Understanding that "output", in this context means to write a chunk's lines
 out to the location specified by the `out` option, if it exists, and to
 write them to `stdout`, if it does not.
 
-@code Tangle Method [lang=python]
-def tangle(self,chunks=None):
-    outputs = {}
-
-    for chunk in self.chunks:
-        if chunk.type == 'code':
-            if chunk.name in outputs.keys():
-                outputs[chunk.name].lines += chunk.lines
-                outputs[chunk.name].options = dict(list(outputs[chunk.name].options.items()) + list(chunk.options.items()))
-            else:
-                outputs[chunk.name] = chunk
-
-    terminalChunks = [x for x in self.chunks if x.hasOutputPath()]
-
-    if chunks != None and len(chunks) > 0:
-        for key in chunks:
-            if outputs[key].hasOutputPath():
-                outputs[key].writeOutput()
-            else:
-                print(outputs[key].dumpLines())
-    elif '*' in outputs.keys(): 
-        content = outputs['*'].dumpLines()
-
-        if outputs['*'].hasOutputPath():
-            outputs['*'].writeOutput()
-        else:
-            print(content)
-    elif len(terminalChunks) > 0:
-        for chunk in terminalChunks:
-            chunk.writeOutput()
-    else:
-        raise BaseException('No chunks specified, no chunks with out attributes, and no root chunk defined')
-        
-    return outputs
-@=
-
-## Weaving ##
+### Weaving
 
 Once we have tangling, we can turn our attention to weaving documentation.
 Tangling is the simpler operation of the two, since it merely extracts and
