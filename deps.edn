@@ -12,4 +12,5 @@
                           :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
      :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
               :main-opts ["-m" "cljfmt.main"]}
+     :spiralweb {:main-opts ["-m" "spiralweb.cli"]}
  }}
