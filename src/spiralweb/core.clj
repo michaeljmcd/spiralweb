@@ -1,5 +1,6 @@
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
+           [taoensso.timbre :refer [info debug]]
            [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
 (defn chunk-content [c]
@@ -131,7 +132,7 @@
   (doseq [chunk chunks]
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
-      (println (chunk-content chunk)))))
+      (debug (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
@@ -151,6 +152,7 @@
   ([files output-chunks]
    (doseq [f files]
      ; TODO: error handling
+     (info "Tangling file " f)
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
 

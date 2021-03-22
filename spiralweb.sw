@@ -125,7 +125,7 @@ help:
     SpiralWeb first checks to see if the destination already exists and has
     identical contents, performing no write if this is so. With this
     option, the file must be written.
-@=
+@end
 
 ## Parsing a Web ##
 
@@ -216,7 +216,7 @@ permitted. From this list
 (def close-proplist
   (parser (match \])
           :using (fn [_] {:type :close-proplist :value "]"})))
-@=
+@end
 
 ### Grammar ###
 
@@ -227,7 +227,7 @@ define these first in order to simplify what follows.
 @code Token Predicates
 (defn- code-end? [t] (= (:type t) :code-end))
 (defn- prop-token? [t] (= (:type t) :properties))
-@=
+@end
 
 Which leads us to the main rule for parsing a web.
 
@@ -237,7 +237,7 @@ Which leads us to the main rule for parsing a web.
            code-definition 
            doc-definition 
            doclines)))
-@=
+@end
 
 The definition starts with the explicit chunk definitions and then uses
 `doclines` as a fallback. Let's consider the code definition first.
@@ -259,7 +259,7 @@ The definition starts with the explicit chunk definitions and then uses
                :options props
                :name (-> n :value trim)
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
-@=
+@end
 
 Then the document definition will also seem pretty straightforward:
 
@@ -272,7 +272,7 @@ Then the document definition will also seem pretty straightforward:
                 props (flatten (map :value (filter prop-token? all-tokens)))]
             {:type :doc :options props
              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
-@=
+@end
 
 Both code and documentation chunks allow properties to be associated with
 the chunk. This is to support output and formatting options. A property
@@ -306,7 +306,7 @@ list is just a series of name-value pairs surrounded by brackets.
              (filter (fn [y] (and (not (nil? y))
                                   (= :property (:type y)))) x)})))
 
-@=
+@end
 
 The core content of a code chunk is obviously a series of lines of code.
 
@@ -322,7 +322,7 @@ The core content of a code chunk is obviously a series of lines of code.
            close-proplist
            chunkref)
    :name "Codeline"))
-@=
+@end
 
 Most of these options are simply unescaped bits of text. The one chunk that
 stands out is chunk references. These are the heart of a web, the linking
@@ -345,7 +345,7 @@ between different code chunks.
         :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
         :indent-level (index-of ref-text "@@<")}))
    :name "Chunk Reference"))
-@=
+@end
 
 Rolling all the way back up to the top, we have ignored document lines.
 This is largely because document lines are easy so we define it here.
@@ -363,7 +363,7 @@ This is largely because document lines are easy so we define it here.
    :name "Docline"))
 
 (def doclines (plus docline))
-@=
+@end
 
 Now, Clojure's loading encourages a bottom-up listing of functionality
 so we will restate our parsing rules accordingly.
@@ -376,7 +376,7 @@ so we will restate our parsing rules accordingly.
 @<Code Chunk Rule>
 @<Doc Chunk Rule>
 @<Web Rule>
-@=
+@end
 
 ### Conclusion ###
 
@@ -392,7 +392,7 @@ to be used in our codebase.
 @<Tokens>
 @<Token Predicates>
 @<Parsing Rules>
-@=
+@end
 
 ## Core Operations
 
@@ -404,11 +404,12 @@ individual functions simple, we will outline the module below.
 @code Core Module [out=src/spiralweb/core.clj]
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
+           [taoensso.timbre :refer [info debug]]
            [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
 @<Chunk Utilities>
 @<Tangling>
-@=
+@end
 
 ### Chunk Utilities ###
 
@@ -439,7 +440,7 @@ here.
 
 (defn is-chunk-reference? [c]
   (= :chunk-reference (:type c)))
-@=
+@end
 
 ### Tangling
 
@@ -479,9 +480,10 @@ turn.
   ([files output-chunks]
    (doseq [f files]
      ; TODO: error handling
+     (info "Tangling file " f)
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
-@=
+@end
 
 This definition postpones the work of actually tangling the individual
 webs to the function `tangle-text`. We will define that next:
@@ -491,7 +493,7 @@ webs to the function `tangle-text`. We will define that next:
   (doseq [chunk chunks]
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
-      (println (chunk-content chunk)))))
+      (debug (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
@@ -505,7 +507,7 @@ webs to the function `tangle-text`. We will define that next:
            (list (get chunks "*"))
        :else
            (filter has-output-path? (vals chunks))))))
-@=
+@end
 
 `refine-code-chunks` builds the chunk list from which we pick the relevant
 portions from output. To do this, we define a simple pipeline that applies
@@ -524,7 +526,7 @@ same name (concatenating the contents) and expands out the references.
            (filter is-code-chunk?)
            (combine-code-chunks {})
            expand-code-refs))))
-@=
+@end
 
 Most of this is fairly straightforward. The most interesting bit was to
 expand out the code references. Because this forms a graph of dependencies
@@ -621,7 +623,7 @@ has the nice benefit of giving us a way to identify loops.
   [chunks]
   (let [chunk-seq (topologically-sort-chunks chunks)]
     (expand-chunks chunk-seq chunks)))
-@=
+@end
 
 Finally, we bundle all this code up under the Tangle section we defined
 earlier.
@@ -631,7 +633,7 @@ earlier.
 @<Refine Code Chunks>
 @<Tangle Text>
 @<Tangle>
-@=
+@end
 
 ### Weaving
 
@@ -639,25 +641,6 @@ Once we have tangling, we can turn our attention to weaving documentation.
 Tangling is the simpler operation of the two, since it merely extracts and
 outputs text. Weaving, on the other hand, requires some knowledge of the
 final destination format.
-
-Examples of this, include the setting of code chunks which in all but the
-most plain of backends will require a little work to typeset. Our basic
-method will be expand chunks (the same way we do when tangling) and hand
-them off to the backend class to do the real work.
-
-As we go forward, we want backends to be pluggable without modifying the
-main source for SpiralWeb. The vision is to implement a full plugin system.
-But, for the time being, we will write a hard-coded backed with a class
-structure meant to facilitate the automatic loading of derivors in the
-future.
-
-@code Weave Method [lang=python]
-def weave(self, chunks=None):
-    backend = PandocMarkdownBackend()
-
-    outputs = self.resolveDocumentation()
-    backend.output(outputs, chunks)
-@=
 
 Next we need to define what it means to resolve the documentation chunks.
 Because we have a `@@doc` directive, we enable a single physical web to
@@ -676,7 +659,7 @@ To make it clear, we would expect the following file:
     #!/bin/sh
 
     echo test
-    @@=
+    @@end
 
     More examples.
 
@@ -688,7 +671,7 @@ To make it clear, we would expect the following file:
     #!/bin/sh
 
     echo test2
-    @@=
+    @@end
 
 To parse in the following chunk list:
 
@@ -703,144 +686,6 @@ chunk and chunks 4-5 under another, so that if chunks are passed to the
 output sequence, we can dump those out alone.
 
 Our method will process the chunk list until we get this result, we then
-return it as a dictionary to the caller.
-
-@code Weave Method [lang=python]
-def resolveDocumentation(self):
-    documentation_chunks = {}
-    last_doc = None
-
-    for chunk in self.chunks:
-        if (chunk.type == 'doc' and chunk.name != last_doc \
-            and chunk.name != ''):
-            last_doc = chunk.name
-        elif last_doc == None:
-            if chunk.type == 'doc':
-                last_doc = chunk.name
-            else:
-                doc = SpiralWebChunk()
-                doc.type = 'doc'
-                doc.name = '*'
-                last_doc = '*'
-
-                documentation_chunks[doc.name] = doc
-        
-        if last_doc in documentation_chunks:
-            documentation_chunks[last_doc].lines.append(chunk)
-        else:
-            documentation_chunks[last_doc] = chunk
-
-    return documentation_chunks
-@=
-
-All backends must derive from a base class which defines the high-level
-output operations along with reasonable defaults. The main starting point
-for any backend is `dispatchChunk` which accepts a chunk and then decides
-which of the main method stubs to call. It is expected that the default
-implementation in `SpiralWebBackend` will suffice. Nonetheless, it can be
-altered by other implementors should they so desire it.
-
-We will look at the `type` attribute of the chunk and call the appropriate
-method out of this list: `formatDoc`, `formatCode`, and `formatRef`. The
-base backend will define each of these methods to simply return the text
-from the chunk as it is passed in. This is clearly not very useful, but it
-gives a good fallback.
-
-@code SpiralWeb class definitions [lang=python]
-class SpiralWebBackend():
-    def dispatchChunk(self, chunk):
-        if isinstance(chunk, str):
-            return chunk
-        elif chunk.type == 'doc':
-            return self.formatDoc(chunk)
-        elif chunk.type == 'code':
-            return self.formatCode(chunk)
-        elif chunk.type == 'ref':
-            return self.formatRef(chunk)
-        else:
-                raise BaseException('Unrecognized chunk type (something must have gone pretty badly wrong).')
-
-    def formatDoc(self, chunk):
-        return chunk.dumpLines()
-
-    def formatCode(self, chunk):
-        return chunk.dumpLines()
-
-    def formatRef(self, chunk):
-        return chunk.dumpLines()
-
-    @<SpiralWebBackend Output Methods>
-@=
-
-Once we have handled our basic formatting, we need to actually output the
-user's request. Again, this method is not likely to have any reason to
-change in inheriting classes, but we define it here for ease and just in
-case. Our basic logic closely follows that of the `tangle` method above.
-
-I. If a non-empty list of chunks has been provided to export, we will
-output all documentation chunks of the same name. Please not that there
-can be documentation and code chunks of the same name without error.
-II. If there is one or more terminal (i.e. a `@@doc` directive with an
-`out` parmeter) write it out.
-III. If none of the above apply, concatenate all output and write it to
-`stdout`.
-
-@code SpiralWebBackend Output Methods [lang=python]
-def output(self, topLevelDocs, chunksToOutput):
-    terminalChunks = [x for w, x in topLevelDocs.items() \
-                      if x.type == 'doc' and x.hasOutputPath()]
-
-    if chunksToOutput != None and len(chunksToOutput) > 0:
-        for key in topLevelDocs:
-            if topLevelDocs[key].type == 'doc':
-                if topLevelDocs[key].hasOutputPath():
-                    self.writeOutChunk(topLevelDocs[key])
-                else:
-                    print(self.dispatchChunk(topLevelDocs[key]))
-    elif len(terminalChunks) > 0:
-        for chunk in terminalChunks:
-            self.writeOutChunk(chunk)
-    else:
-        for name, chunk in topLevelDocs.items():
-            print(self.dispatchChunk(chunk))
-
-def writeOutChunk(self, chunk):
-    if not 'out' in chunk.options:
-        raise BaseException('When writing out a chunk with writeOutChunk an output parameter is expected')
-    else:
-        with open(chunk.options['out'], 'w') as outFile:
-            outFile.write(self.dispatchChunk(chunk))
-@=
-
-With our superclass acting as a superstructure, we define the Pandoc
-backend. Documentation lines will be passed through verbatim as we need to
-do no extra processing on them. Code lines, on the other hand, will require
-a little more work. We will format them for Markdown as delimited code
-blocks.
-
-@code SpiralWeb class definitions [lang=python]
-class PandocMarkdownBackend(SpiralWebBackend):
-    def formatDoc(self, chunk):
-        lines = [self.dispatchChunk(x) for x in chunk.lines] 
-        return ''.join(lines)
-
-    def formatCode(self, chunk):
-        leader = "~~~~~~~~~~~~~~~~~"
-        options = ''
-
-        if chunk.options.get('lang') != None:
-            options = '{.%(language)s .numberLines}' % \
-                {'language': chunk.options.get('lang')}
-
-        lines = [self.dispatchChunk(x) for x in chunk.lines]
-
-        return "%(leader)s%(options)s\n%(code)s%(trailer)s\n" % \
-            {"leader": leader, "code": ''.join(lines),
-             "trailer": leader, "options": options}
-
-    def formatRef(self, chunk):
-        return "<%(name)s>" % {"name": chunk.name}
-@=
 
 ## The Command Line Application ##
 
@@ -858,7 +703,7 @@ have already assembled.
            [clojure.tools.cli :refer [parse-opts]]
            [taoensso.timbre :as t :refer [merge-config!]]))
 
-(merge-config! {:level :error})
+(merge-config! {:level :debug})
 
 (def cli-options
   [["-c" "--chunk CHUNK"]
@@ -870,7 +715,7 @@ have already assembled.
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
       "help" (println "Help!"))))
-@=
+@end
 
 ### Packaging
 
@@ -888,8 +733,6 @@ advancements we would like to see in the next version:
 
 ## References ##
 
-[^argparse]: <http://docs.python.org/library/argparse.html#module-argparse>
-[^plyWebsite]: (PLY Website)[http://www.dabeaz.com/ply/]
 [^edessaWebsite]: (Edessa on Github)[https://github.com/michaeljmcd/edessa]
 
 // vim: set tw=75 ai: 
