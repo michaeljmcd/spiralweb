@@ -685,8 +685,6 @@ The end result should combine chunks 1-3 under a single documentation
 chunk and chunks 4-5 under another, so that if chunks are passed to the
 output sequence, we can dump those out alone.
 
-Our method will process the chunk list until we get this result, we then
-
 ## The Command Line Application ##
 
 In the previous sections, we defined the command-line syntax for the
