@@ -382,9 +382,53 @@ to be used in our codebase.
 
 ## Core Operations
 
+There are two core operations on a literate programming: tangling (whereby
+we transform a web into executable source code) and weaving (whereby we
+transform a web into documentation). In order to keep the discussion of the
+individual functions simple, we will outline the module below.
+
+@code [out=src/spiralweb/core.clj]
+(ns spiralweb.core)
+
+@<Chunk Utilities>
+@<Tangling>
+@<Weaving>
+@=
+
+### Chunk Utilities ###
+
+These are used throughout the surrounding sections, so we will define them
+here.
+
+@code Chunk Utilities
+(defn chunk-content [c]
+  (->> c :lines (map :value) (apply str)))
+
+(defn is-code-chunk? [c]
+  (= (:type c) :code))
+
+(defn output-option? [opt]
+  (= "out" (-> opt :value :name)))
+
+(defn output-path [c]
+  (->
+   (filter output-option? (:options c))
+   first
+   :value
+   :value))
+
+(defn has-output-path?
+  "Examines a chunk map and indicates whether there is an output path specified on the chunk."
+  [c]
+  (some? (output-path c)))
+
+(defn is-chunk-reference? [c]
+  (= :chunk-reference (:type c)))
+@=
+
 ### Tangling
 
-Next, we turn our attention to the `tangle` method, as it is the one needed
+Next, we turn our attention to the `tangle` function, as it is the one needed
 to get to the point where we can weave. Tangling occurrs in two phases.
 First, we expand all of our code chunks. Multiple specifications of the
 same chunk are concatenated together and chunk references are expanded
@@ -407,6 +451,166 @@ IV.  If none of the above match, we raise an exception indicating the
 Understanding that "output", in this context means to write a chunk's lines
 out to the location specified by the `out` option, if it exists, and to
 write them to `stdout`, if it does not.
+
+Generally speaking, tangling occurs from files. This being a Unix-style
+command-line, we don't want to mandate a file, but that will be most
+common. So we define a function that we expect to be called from the CLI
+tool that will accept a list of paths and output chunks and tangles each in
+turn.
+
+@code Tangle
+(defn tangle
+  "Accepts a list of files, extracts code and writes it out."
+  ([files output-chunks]
+   (doseq [f files]
+     ; TODO: error handling
+     (tangle-text (slurp f) output-chunks)))
+  ([files] (tangle files nil)))
+@=
+
+This definition postpones the work of actually tangling the individual
+webs to the function `tangle-text`. We will define that next:
+
+@code Tangle Text
+(defn tangle-text [txt output-chunks]
+  (let [chunks (refine-code-chunks txt)]
+    (output-code-chunks
+     (cond
+       (not (empty? output-chunks))
+           (filter (fn [x]
+                     (contains? (set output-chunks) (:name x)))
+                   (vals chunks))
+       (contains? chunks "*")
+           (list (get chunks "*"))
+       :else
+           (filter has-output-path? (vals chunks))))))
+@=
+
+`refine-code-chunks` builds the chunk list from which we pick the relevant
+portions from output. To do this, we define a simple pipeline that applies
+the parser to the input text, extracts code chunks, combines chunks of the
+same name (concatenating the contents) and expands out the references.
+
+@code Refine Code Chunks
+(defn refine-code-chunks [text]
+  (let [parse-tree (apply-parser web text)]
+    (if (or (failure? parse-tree)
+            (input-remaining? parse-tree))
+      nil
+      (->> parse-tree
+           result
+           first
+           (filter is-code-chunk?)
+           (combine-code-chunks {})
+           expand-code-refs))))
+@=
+
+Most of this is fairly straightforward. The most interesting bit was to
+expand out the code references. Because this forms a graph of dependencies
+between code chunks, we will topographically sort the code chunks and
+expand them in order. This allows us to deal with transitive references and
+has the nice benefit of giving us a way to identify loops.
+
+@code Expand Code References
+(defn combine-code-chunks [result chunks]
+  (let [chunk (first chunks)]
+    (cond
+      (empty? chunks)
+      result
+      (not (is-code-chunk? chunk))
+      (recur result (rest chunks))
+      (contains? result (:name chunk))
+      (recur
+       (update-in result [(:name chunk) :lines]
+                  (fn [x] (concat (:lines chunk) x)))
+       (rest chunks))
+      :else
+      (recur (assoc result (:name chunk) chunk)
+             (rest chunks)))))
+
+(defn build-chunk-crossrefs
+  "Accepts a sequence of chunks, some of which may be documentation chunks 
+  and some of which may be code chunks, and builds a map of maps indicating
+  whether one chunk refers to another.
+
+  {\"asdf\" : {\"def\": true, \"abc\": false }}
+
+  This map is not sparse. It will include some entry for each chunk in the original list."
+  [chunks]
+  (letfn [(add-references [chunk result]
+            (let [ref-lines (filter is-chunk-reference? (:lines chunk))
+                  chunk-adjacent (get result (:name chunk))
+                  additions (interleave (map :name ref-lines) (repeat true))]
+              (if (empty? additions)
+                result
+                (assoc result (:name chunk)
+                       (apply (partial assoc chunk-adjacent) additions)))))
+
+          (build-chunk-crossrefs-inner [chunks result]
+            (let [[c & cs] chunks]
+              (cond
+                (empty? chunks) result
+                :else (recur cs (add-references c result)))))]
+
+    (build-chunk-crossrefs-inner chunks (apply (partial assoc {})
+                                               (interleave (map :name (filter is-code-chunk? chunks)) (repeat {}))))))
+
+(defn topologically-sort-chunks
+  "Accepts a map of code chunks (name -> value) and produces a topologically sorted list of chunk IDs."
+  [chunks]
+  (let [has-incoming-edges? (fn [xrefs cn]
+                              (some #(some? (get % cn)) (vals xrefs)))
+
+        find-candidate-nodes (fn [xrefs]
+                               (filter (comp not (partial has-incoming-edges? xrefs)) (keys xrefs)))
+
+        ts-inner (fn [res xrefs]
+                   (let [candidates (find-candidate-nodes xrefs)]
+                     (if (empty? candidates) [res xrefs]
+                         (recur (cons (first candidates) res)
+                                (dissoc xrefs (first candidates))))))
+        xrefs (build-chunk-crossrefs (vals chunks))
+        [sorted-names leftovers] (ts-inner [] xrefs)]
+    (if (empty? leftovers)
+      sorted-names
+      "ERROR! Circular reference.")))
+
+(defn expand-refs [chunk all-chunks]
+  (letfn [(expand-refs-inner [lines all-chunks result]
+            (let [line (first lines)]
+              (cond
+                (empty? lines) result
+                (is-chunk-reference? line)
+                (recur (rest lines) all-chunks
+                       (concat (-> all-chunks (get (:name line)) :lines) result))
+                :else (recur (rest lines) all-chunks (cons line result)))))]
+
+    (assoc chunk :lines
+           (expand-refs-inner (:lines chunk) all-chunks []))))
+
+(defn expand-chunks [queue chunks]
+  (if (empty? queue)
+    chunks
+    (recur (rest queue)
+           (assoc chunks (first queue)
+                  (expand-refs (get chunks (first queue)) chunks)))))
+
+(defn expand-code-refs
+  "Accepts a map of chunks (the key being the name of the chunk, value being the unique value."
+  [chunks]
+  (let [chunk-seq (topologically-sort-chunks chunks)]
+    (expand-chunks chunk-seq chunks)))
+@=
+
+Finally, we bundle all this code up under the Tangle section we defined
+earlier.
+
+@code Tangling
+@<Expand Code References>
+@<Refine Code Chunks>
+@<Tangle Text>
+@<Tangle>
+@=
 
 ### Weaving
 
@@ -615,113 +819,6 @@ class PandocMarkdownBackend(SpiralWebBackend):
 
     def formatRef(self, chunk):
         return "<%(name)s>" % {"name": chunk.name}
-@=
-
-#### Web Components ####
-
-It turns out, ironically, that there are only two kinds of chunks that
-actually matter: text-producing chunks (either document or code) and chunk
-references.
-
-We define both with a `dumpLines` method that will perform all resolutions
-and produce final output for the given chunk. 
-
-@code SpiralWeb chunk class definitions [lang=python]
-class SpiralWebChunk():
-    lines = []
-    options = {}
-    name = ''
-    type = ''
-    parent = None
-
-    def getChunk(self, name):
-        for chunk in self.lines:
-            if not isinstance(chunk, str):
-                if chunk.name == name:
-                    return chunk
-                elif chunk.getChunk(name) != None:
-                    return chunk.getChunk(name)
-        return None
-
-    def setParent(self, parent):
-        self.parent = parent
-
-        for line in self.lines:
-            if not isinstance(line, str):
-                line.setParent(parent)
-
-    def dumpLines(self, indentLevel=''):
-        output = ''
-
-        for line in self.lines:
-            if isinstance(line, str):
-                output += line
-
-                if line.find("\n") != -1:
-                    output += indentLevel
-            else:
-                output += line.dumpLines(indentLevel)
-
-        return output
-
-    def hasOutputPath(self):
-        return 'out' in self.options.keys()
-
-    def writeOutput(self):
-        if self.hasOutputPath():
-            content = self.dumpLines()
-            path = self.options['out']
-
-            with open(path, 'w') as fileHandle:
-                fileHandle.write(content)
-        else:
-            raise BaseException('No output path specified')
-
-    def __add__(self, exp):
-        if isinstance(exp, str):
-            for line in self.lines:
-                exp += line
-            return exp
-        else:
-            merged = SpiralWebChunk()
-            merged.lines = self.lines + exp.lines
-            merged.name = self.name
-            merged.type = self.type
-            merged.parent = self.parent
-            merged.options = self.options
-
-            return merged
-
-class SpiralWebRef():
-    name = ''
-    indentLevel = 0
-    parent = None
-    type = 'ref'
-
-    def __init__(self, name, indentLevel=''):
-        self.name = name
-        self.indentLevel = indentLevel
-
-    def __add__(self, exp):
-        return exp + self.parent.getChunk(name).dumpLines(indentLevel=self.indentLevel)
-
-    def getChunk(self, name):
-        if name == self.name:
-            return self
-        else:
-            return None
-
-    def setParent(self, parent):
-        self.parent = parent
-
-    def dumpLines(self, indentLevel=''):
-        refChunk = self.parent.getChunk(self.name)
-
-        if refChunk != None:
-            return indentLevel + self.indentLevel + refChunk.dumpLines(indentLevel=indentLevel+self.indentLevel)
-        else:
-            raise BaseException('No chunk named %s found' % self.name)
-
 @=
 
 ## The Command Line Application ##
