@@ -1,166 +1,12 @@
 (ns spiralweb.core
-  (:require [clojure.string :refer [starts-with? trim index-of]]
-            [clojure.tools.cli :refer [parse-opts]]
-            [taoensso.timbre :as t :refer [debug error]]
-            [edessa.parser :refer :all]))
+ (:require [spiralweb.parser :refer [web]]
+           [edessa.parser :refer [apply-parser]]))
 
-; Spiralweb language definition
-
-(def non-breaking-ws
-  (parser (one-of [\space \tab])
-          :name "Non-breaking whitespace"))
-(def nl
-  (parser (match \newline)
-          :name "Newline"
-          :using (fn [_] {:type :newline :value (str \newline)})))
-
-(def t-text
-  (parser
-   (plus
-    (parser (not-one-of [\@ \[ \] \= \, \newline])
-            :name "Non-Reserved Characters"))
-   :using (fn [x] {:type :text :value (apply str x)})
-   :name "Text Token"))
-
-(def code-end
-  (parser (literal "@end")
-          :using (fn [_] {:type :code-end :value "@end"})
-          :name "Code End"))
-
-(def doc-directive
-  (parser (literal "@doc")
-          :using (fn [_] {:type :doc-directive :value "@doc"})))
-
-(def code-directive
-  (parser (literal "@code")
-          :using (fn [_] {:type :code-directive :value "@code"})))
-
-(def at-directive
-  (parser (literal "@@")
-          :using (fn [_] {:type :at-directive :value "@@"})))
-
-(def comma
-  (parser (match \,)
-          :using (fn [_] {:type :comma :value ","})))
-
-(def t-equals
-  (parser (match \=)
-          :using (fn [_] {:type :equals :value "="})))
-
-(def open-proplist
-  (parser (match \[)
-          :using (fn [_] {:type :open-proplist :value "["})))
-
-(def close-proplist
-  (parser (match \])
-          :using (fn [_] {:type :close-proplist :value "]"})))
-
-(def chunkref
-  (parser
-   (then
-    (star non-breaking-ws)
-    (match \@) (match \<)
-    (plus (not-one-of [\> \newline]))
-    (match \>)
-    (star non-breaking-ws))
-   :using
-   (fn [x]
-     (let [ref-text (apply str x)
-           trimmed-ref-text (trim ref-text)]
-       {:type :chunk-reference
-        :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-        :indent-level (index-of ref-text "@<")}))
-   :name "Chunk Reference"))
-
-(def docline
-  (parser
-   (choice t-text
-           nl
-           at-directive
-           comma
-           t-equals
-           open-proplist
-           close-proplist)
-   :name "Docline"))
-
-(def codeline
-  (parser
-   (choice t-text
-           nl
-           at-directive
-           comma
-           t-equals
-           open-proplist
-           close-proplist
-           chunkref)
-   :name "Codeline"))
-
-(def doclines (plus docline))
-
-(def property
-  (parser (then t-text t-equals t-text)
-          :using
-          (fn [x]
-            (let [scrubbed (filter (comp not nil?) x)]
-              {:type :property :value {:name (-> scrubbed first :value trim)
-                                       :value (-> scrubbed (nth 2) :value trim)}}))))
-
-(def property-sequence (choice (then comma property) property))
-
-(def property-list
-  (parser (then open-proplist (star property-sequence) close-proplist (star non-breaking-ws))
-          :using
-          (fn [x]
-            {:type :properties :value
-             (filter (fn [y] (and (not (nil? y))
-                                  (= :property (:type y)))) x)})))
-
-(defn- prop-token? [t] (= :properties (:type t)))
-
-(def doc-definition
-  (parser (then doc-directive t-text (optional property-list) nl doclines)
-          :using
-          (fn [x]
-            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
-                  props (flatten (map :value (filter prop-token? all-tokens)))]
-              {:type :doc :options props
-               :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
-
-(defn code-end? [t] (= (:type t) :code-end))
-
-(def code-definition
-  (parser (then code-directive t-text (optional property-list) nl (plus codeline) code-end)
-          :using
-          (fn [x]
-            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
-                  props (flatten (map :value (filter prop-token? all-tokens)))]
-              {:type :code :options props
-               :name (-> n :value trim) :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
-
-(def web (star (choice code-definition doc-definition doclines)))
-
-; CLI interface
-
-(t/merge-config! {:level :error})
+(defn chunk-content [c]
+  (->> c :lines (map :value) (apply str)))
 
 (defn is-code-chunk? [c]
   (= (:type c) :code))
-
-(defn combine-code-chunks [result chunks]
-  (let [chunk (first chunks)]
-    (cond
-      (empty? chunks)
-      result
-      (not (is-code-chunk? chunk))
-      (recur result (rest chunks))
-      (contains? result (:name chunk))
-      (recur
-       (update-in result [(:name chunk) :lines]
-                  (fn [x] (concat (:lines chunk) x)))
-       (rest chunks))
-      :else
-      (recur (assoc result (:name chunk) chunk)
-             (rest chunks)))))
 
 (defn output-option? [opt]
   (= "out" (-> opt :value :name)))
@@ -179,6 +25,22 @@
 
 (defn is-chunk-reference? [c]
   (= :chunk-reference (:type c)))
+
+(defn combine-code-chunks [result chunks]
+  (let [chunk (first chunks)]
+    (cond
+      (empty? chunks)
+      result
+      (not (is-code-chunk? chunk))
+      (recur result (rest chunks))
+      (contains? result (:name chunk))
+      (recur
+       (update-in result [(:name chunk) :lines]
+                  (fn [x] (concat (:lines chunk) x)))
+       (rest chunks))
+      :else
+      (recur (assoc result (:name chunk) chunk)
+             (rest chunks)))))
 
 (defn build-chunk-crossrefs
   "Accepts a sequence of chunks, some of which may be documentation chunks 
@@ -206,13 +68,6 @@
 
     (build-chunk-crossrefs-inner chunks (apply (partial assoc {})
                                                (interleave (map :name (filter is-code-chunk? chunks)) (repeat {}))))))
-
-; Let's take a step back and think about tangling. We want to take the input
-; text and parse it. If there is an error, we stop and report the error.
-; If not, we want to expand the code chunks out. Finally, we want to output
-; chunks. If a user passes in a specific chunk or set of chunks, we dump those
-; out. Otherwise, we want to find all those chunks with output paths and write
-; them out.
 
 (defn topologically-sort-chunks
   "Accepts a map of code chunks (name -> value) and produces a topologically sorted list of chunk IDs."
@@ -272,27 +127,18 @@
            (combine-code-chunks {})
            expand-code-refs))))
 
-(defn chunk-content [c]
-  (->> c :lines (map :value) (apply str)))
-
-(defn output-code-chunks [chunks]
-  (doseq [chunk chunks]
-    (if (has-output-path? chunk)
-      (spit (output-path chunk) (chunk-content chunk))
-      (println (chunk-content chunk)))))
-
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
     (output-code-chunks
      (cond
        (not (empty? output-chunks))
-       (filter (fn [x]
-                 (contains? (set output-chunks) (:name x)))
-               (vals chunks))
+           (filter (fn [x]
+                     (contains? (set output-chunks) (:name x)))
+                   (vals chunks))
        (contains? chunks "*")
-       (list (get chunks "*"))
+           (list (get chunks "*"))
        :else
-       (filter has-output-path? (vals chunks))))))
+           (filter has-output-path? (vals chunks))))))
 
 (defn tangle
   "Accepts a list of files, extracts code and writes it out."
@@ -302,13 +148,4 @@
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
 
-(def cli-options
-  [["-c" "--chunk CHUNK"]
-   ["-f" "--help"]])
 
-(defn -main "The main entrypoint for running SpiralWeb as a command line tool."
-  [& args]
-  (let [opts (parse-opts args cli-options)]
-    (case (first (:arguments opts))
-      "tangle" (tangle (rest (:arguments opts)))
-      "help" (println "Help!"))))

@@ -151,9 +151,9 @@ SpiralWeb language.
 
 The first set of tokens are the directives that begin and end chunks.
 
-* `@doc` - begin a documentation chunk.
-* `@code` - begin a code chunk.
-* `@end` - to end a code block.
+* `@@doc` - begin a documentation chunk.
+* `@@code` - begin a code chunk.
+* `@@end` - to end a code block.
 
 The existence of these three implies a fourth, a way to escape the at
 symbol, which we designated as `@@`. Document and code chunks can have
@@ -179,27 +179,27 @@ permitted. From this list
 (def t-text
   (parser
    (plus
-    (parser (not-one-of [\@ \[ \] \= \, \newline])
+    (parser (not-one-of [\@@ \[ \] \= \, \newline])
             :name "Non-Reserved Characters"))
    :using (fn [x] {:type :text :value (apply str x)})
    :name "Text Token"))
 
 (def code-end
-  (parser (literal "@end")
-          :using (fn [_] {:type :code-end :value "@end"})
+  (parser (literal "@@end")
+          :using (fn [_] {:type :code-end :value "@@end"})
           :name "Code End"))
 
 (def doc-directive
-  (parser (literal "@doc")
-          :using (fn [_] {:type :doc-directive :value "@doc"})))
+  (parser (literal "@@doc")
+          :using (fn [_] {:type :doc-directive :value "@@doc"})))
 
 (def code-directive
-  (parser (literal "@code")
-          :using (fn [_] {:type :code-directive :value "@code"})))
+  (parser (literal "@@code")
+          :using (fn [_] {:type :code-directive :value "@@code"})))
 
 (def at-directive
-  (parser (literal "@@")
-          :using (fn [_] {:type :at-directive :value "@@"})))
+  (parser (literal "@@@@")
+          :using (fn [_] {:type :at-directive :value "@@@@"})))
 
 (def comma
   (parser (match \,)
@@ -320,7 +320,7 @@ between different code chunks.
   (parser
    (then
     (star non-breaking-ws)
-    (match \@) (match \<)
+    (match \@@) (match \<)
     (plus (not-one-of [\> \newline]))
     (match \>)
     (star non-breaking-ws))
@@ -330,7 +330,7 @@ between different code chunks.
            trimmed-ref-text (trim ref-text)]
        {:type :chunk-reference
         :name (subs trimmed-ref-text 2 (- (count trimmed-ref-text) 1))
-        :indent-level (index-of ref-text "@<")}))
+        :indent-level (index-of ref-text "@@<")}))
    :name "Chunk Reference"))
 @=
 
@@ -369,7 +369,7 @@ so we will restate our parsing rules accordingly.
 In order to make all this code useful, we need to assemble it into a module
 to be used in our codebase.
 
-@code [out=src/spiralweb/parser.clj]
+@code Parser Module [out=src/spiralweb/parser.clj]
 (ns spiralweb.parser
   (:require [clojure.string :refer [starts-with? trim index-of]]
             [taoensso.timbre :as t :refer [debug error]]
@@ -388,11 +388,12 @@ transform a web into documentation). In order to keep the discussion of the
 individual functions simple, we will outline the module below.
 
 @code [out=src/spiralweb/core.clj]
-(ns spiralweb.core)
+(ns spiralweb.core
+ (:require [spiralweb.parser :refer [web]]
+           [edessa.parser :refer [apply-parser]]))
 
 @<Chunk Utilities>
 @<Tangling>
-@<Weaving>
 @=
 
 ### Chunk Utilities ###
