@@ -1,6 +1,6 @@
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
-           [edessa.parser :refer [apply-parser]]))
+           [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
 (defn chunk-content [c]
   (->> c :lines (map :value) (apply str)))
@@ -126,6 +126,12 @@
            (filter is-code-chunk?)
            (combine-code-chunks {})
            expand-code-refs))))
+
+(defn output-code-chunks [chunks]
+  (doseq [chunk chunks]
+    (if (has-output-path? chunk)
+      (spit (output-path chunk) (chunk-content chunk))
+      (println (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]

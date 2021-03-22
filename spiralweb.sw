@@ -261,6 +261,19 @@ The definition starts with the explicit chunk definitions and then uses
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 @=
 
+Then the document definition will also seem pretty straightforward:
+
+@code Doc Chunk Rule
+(def doc-definition
+(parser (then doc-directive t-text (optional property-list) nl doclines)
+        :using
+        (fn [x]
+          (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+                props (flatten (map :value (filter prop-token? all-tokens)))]
+            {:type :doc :options props
+             :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
+@=
+
 Both code and documentation chunks allow properties to be associated with
 the chunk. This is to support output and formatting options. A property
 list is just a series of name-value pairs surrounded by brackets.
@@ -361,6 +374,7 @@ so we will restate our parsing rules accordingly.
 @<Property List Rule>
 @<Code Line Rule>
 @<Code Chunk Rule>
+@<Doc Chunk Rule>
 @<Web Rule>
 @=
 
@@ -387,10 +401,10 @@ we transform a web into executable source code) and weaving (whereby we
 transform a web into documentation). In order to keep the discussion of the
 individual functions simple, we will outline the module below.
 
-@code [out=src/spiralweb/core.clj]
+@code Core Module [out=src/spiralweb/core.clj]
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
-           [edessa.parser :refer [apply-parser]]))
+           [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
 @<Chunk Utilities>
 @<Tangling>
@@ -473,6 +487,12 @@ This definition postpones the work of actually tangling the individual
 webs to the function `tangle-text`. We will define that next:
 
 @code Tangle Text
+(defn output-code-chunks [chunks]
+  (doseq [chunk chunks]
+    (if (has-output-path? chunk)
+      (spit (output-path chunk) (chunk-content chunk))
+      (println (chunk-content chunk)))))
+
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
     (output-code-chunks
