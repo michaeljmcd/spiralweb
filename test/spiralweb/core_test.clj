@@ -30,12 +30,14 @@
                       {:type :text :value "zzzz"}]}
       inner-chunk {:type :code :name "Inner" :lines [{:type :text :value "ggg"}]}
       all-chunks {"Outer" chunk "Inner" inner-chunk}]
-   (is (= (expand-refs chunk all-chunks)
+   (is (= (expand-chunks ["Inner" "Outer"] all-chunks)
+        {"Outer"
           {:type :code
            :name "Outer"
            :options []
            :lines [{:type :text, :value "asdf"}
                    {:type :text, :value "ggg"}
                    {:type :text, :value "zzzz"}]}
+        "Inner" inner-chunk}
           ))
 ))

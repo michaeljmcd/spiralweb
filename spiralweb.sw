@@ -645,7 +645,9 @@ has the nice benefit of giving us a way to identify loops.
           :lines
            (reverse (expand-refs-inner (:lines chunk) all-chunks [])))))
 
-(defn expand-chunks [queue chunks]
+(defn expand-chunks 
+  "Accepts a map of chunks (name -> chunk) and an order of names and expands the chunks in that order."
+  [queue chunks]
   (if (empty? queue)
     chunks
     (let [cn (first queue)]
@@ -762,13 +764,15 @@ if true:
                       {:type :text :value "zzzz"}]}
       inner-chunk {:type :code :name "Inner" :lines [{:type :text :value "ggg"}]}
       all-chunks {"Outer" chunk "Inner" inner-chunk}]
-   (is (= (expand-refs chunk all-chunks)
+   (is (= (expand-chunks ["Inner" "Outer"] all-chunks)
+        {"Outer"
           {:type :code
            :name "Outer"
            :options []
            :lines [{:type :text, :value "asdf"}
                    {:type :text, :value "ggg"}
                    {:type :text, :value "zzzz"}]}
+        "Inner" inner-chunk}
           ))
 ))
 @end

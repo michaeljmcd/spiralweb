@@ -105,7 +105,9 @@
           :lines
            (reverse (expand-refs-inner (:lines chunk) all-chunks [])))))
 
-(defn expand-chunks [queue chunks]
+(defn expand-chunks 
+  "Accepts a map of chunks (name -> chunk) and an order of names and expands the chunks in that order."
+  [queue chunks]
   (if (empty? queue)
     chunks
     (let [cn (first queue)]
