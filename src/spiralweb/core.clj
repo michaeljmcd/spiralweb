@@ -132,7 +132,7 @@
   (doseq [chunk chunks]
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
-      (debug (chunk-content chunk)))))
+      (println (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]

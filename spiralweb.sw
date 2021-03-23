@@ -523,7 +523,7 @@ webs to the function `tangle-text`. We will define that next:
   (doseq [chunk chunks]
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
-      (debug (chunk-content chunk)))))
+      (println (chunk-content chunk)))))
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
@@ -661,14 +661,43 @@ understanding is solid.
 @code Tangling Tests [out=test/spiralweb/core_test.clj]
 (ns spiralweb.core-test
  (:require [clojure.test :refer :all]
+           [clojure.java.io :as io]
            [spiralweb.core :refer :all]
            [edessa.parser :refer [success? failure? apply-parser result]]
-           [taoensso.timbre :as t :refer [debug error]]))
+           [taoensso.timbre :as t :refer [debug error merge-config!]]))
 
-(deftest tangle-tests
+(merge-config! {:level :info})
+
+(deftest tangle-edge-case-tests
  (let [circular-text "@@code a\n@@<b>\n@@end\n@@code b\n@@<a>\n@@end"
        result (tangle-text circular-text [])]
     (is (= nil result))))
+@end
+
+Let us next define a test that will validate a simple web tangles
+correctly. Let's start by defining a simple sample web and then write a
+confirmation test for it.
+
+@code Simple Test Web [out=test-resources/simple.sw]
+ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent faucibus tempus ex, id consequat ex. Mauris convallis dapibus metus eu lobortis. Nulla interdum consectetur varius. Fusce a eros dolor. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Cras orci justo, sagittis sit amet condimentum at, posuere id nisl. Vestibulum eleifend tempus justo ac dapibus. Ut eros enim, hendrerit ut porttitor sed, bibendum et erat. Integer vitae faucibus est. Suspendisse vitae congue sapien. Nulla nulla tortor, varius id urna vel, convallis blandit leo.
+
+Morbi id vehicula mi, ac luctus nisl. Donec imperdiet est bibendum libero bibendum, a porttitor mi imperdiet. Vivamus sit amet tempor metus. Etiam convallis lectus id lorem pretium sodales. Suspendisse lacinia auctor massa et ultrices. Vivamus quis ante ligula. Proin sagittis turpis consectetur turpis vulputate, non efficitur urna consectetur. Duis tincidunt volutpat risus, a vulputate risus porttitor nec. Nam ac elit eget ligula feugiat porttitor. In hac habitasse platea dictumst. Curabitur sollicitudin urna a pretium aliquam. Etiam sit amet metus tellus. Vestibulum a augue quis nisl pretium condimentum.
+
+Suspendisse vulputate volutpat dolor, non accumsan est. Praesent eu dui libero. Nunc ut fringilla nulla, a euismod purus. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Mauris vitae leo iaculis, tincidunt nibh a, faucibus diam. Ut lacinia justo id dignissim accumsan. Suspendisse ac eleifend mi. Ut posuere nisl a justo condimentum, quis molestie lacus volutpat. Vestibulum auctor ex ut augue faucibus imperdiet. Etiam sollicitudin ipsum ac enim dictum, non consectetur turpis dictum. Etiam sit amet elementum quam. Sed bibendum posuere dignissim.
+
+@@code My Code
+print('Hello World')
+@@end
+@end
+
+@code Tangling Tests
+(defn load-resource [name] (-> name io/resource slurp))
+
+(deftest tangle-tests
+ (let [simple-text (load-resource "simple.sw")]
+  (is (= "\nprint('Hello World')\n\n" ; TODO: FIXME
+         (with-out-str (tangle-text simple-text ["My Code"]))))
+ ))
 @end
 
 Finally, we bundle all this code up under the Tangle section we defined
