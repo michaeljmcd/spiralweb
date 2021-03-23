@@ -527,6 +527,7 @@ webs to the function `tangle-text`. We will define that next:
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
+   ;(info chunks)
     (output-code-chunks
      (cond
        (not (empty? output-chunks))
@@ -555,7 +556,8 @@ same name (concatenating the contents) and expands out the references.
            first
            (filter is-code-chunk?)
            (combine-code-chunks {})
-           expand-code-refs))))
+           expand-code-refs
+           ))))
 @end
 
 Most of this is fairly straightforward. The most interesting bit was to
@@ -634,24 +636,29 @@ has the nice benefit of giving us a way to identify loops.
               (cond
                 (empty? lines) result
                 (is-chunk-reference? line)
-                (recur (rest lines) all-chunks
+                (recur (rest lines)
+                       all-chunks
                        (concat (-> all-chunks (get (:name line)) :lines) result))
                 :else (recur (rest lines) all-chunks (cons line result)))))]
-
-    (assoc chunk :lines
-           (expand-refs-inner (:lines chunk) all-chunks []))))
+   (debug "Expanding " chunk)
+    (assoc chunk
+          :lines
+           (reverse (expand-refs-inner (:lines chunk) all-chunks [])))))
 
 (defn expand-chunks [queue chunks]
   (if (empty? queue)
     chunks
-    (recur (rest queue)
-           (assoc chunks (first queue)
-                  (expand-refs (get chunks (first queue)) chunks)))))
+    (let [cn (first queue)]
+      (recur (rest queue)
+             (assoc chunks
+                    cn
+                    (expand-refs (get chunks cn) chunks))))))
 
 (defn expand-code-refs
   "Accepts a map of chunks (the key being the name of the chunk, value being the unique value."
   [chunks]
   (let [chunk-seq (topologically-sort-chunks chunks)]
+   (debug chunk-seq)
     (expand-chunks chunk-seq chunks)))
 @end
 
@@ -676,7 +683,7 @@ understanding is solid.
            [clojure.java.io :as io]
            [spiralweb.core :refer :all]
            [edessa.parser :refer [success? failure? apply-parser result]]
-           [taoensso.timbre :as t :refer [debug error merge-config!]]))
+           [taoensso.timbre :as t :refer [debug error info merge-config!]]))
 
 (merge-config! {:level :info})
 
@@ -741,8 +748,29 @@ if true:
 @code Tangling Tests
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
-  (is (= "\nprint('Hello World')\nif true:\n   print(1 + 2)\n\n"
+  (is (= "\nprint('Hello World')\n\n\nif true:\n  print(1 + 2)\n  \n\n\n"
          (with-out-str (tangle-text text ["Example"]))))))
+@end
+
+@code Tangling Tests
+(deftest expand-refs-simple
+ (let [chunk {:type :code 
+              :name "Outer"
+              :options [] 
+              :lines [{:type :text :value "asdf"}
+                      {:type :chunk-reference :name "Inner"}
+                      {:type :text :value "zzzz"}]}
+      inner-chunk {:type :code :name "Inner" :lines [{:type :text :value "ggg"}]}
+      all-chunks {"Outer" chunk "Inner" inner-chunk}]
+   (is (= (expand-refs chunk all-chunks)
+          {:type :code
+           :name "Outer"
+           :options []
+           :lines [{:type :text, :value "asdf"}
+                   {:type :text, :value "ggg"}
+                   {:type :text, :value "zzzz"}]}
+          ))
+))
 @end
 
 ### Weaving

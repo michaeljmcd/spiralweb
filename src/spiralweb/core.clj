@@ -96,24 +96,29 @@
               (cond
                 (empty? lines) result
                 (is-chunk-reference? line)
-                (recur (rest lines) all-chunks
+                (recur (rest lines)
+                       all-chunks
                        (concat (-> all-chunks (get (:name line)) :lines) result))
                 :else (recur (rest lines) all-chunks (cons line result)))))]
-
-    (assoc chunk :lines
-           (expand-refs-inner (:lines chunk) all-chunks []))))
+   (debug "Expanding " chunk)
+    (assoc chunk
+          :lines
+           (reverse (expand-refs-inner (:lines chunk) all-chunks [])))))
 
 (defn expand-chunks [queue chunks]
   (if (empty? queue)
     chunks
-    (recur (rest queue)
-           (assoc chunks (first queue)
-                  (expand-refs (get chunks (first queue)) chunks)))))
+    (let [cn (first queue)]
+      (recur (rest queue)
+             (assoc chunks
+                    cn
+                    (expand-refs (get chunks cn) chunks))))))
 
 (defn expand-code-refs
   "Accepts a map of chunks (the key being the name of the chunk, value being the unique value."
   [chunks]
   (let [chunk-seq (topologically-sort-chunks chunks)]
+   (debug chunk-seq)
     (expand-chunks chunk-seq chunks)))
 
 (defn refine-code-chunks [text]
@@ -126,7 +131,8 @@
            first
            (filter is-code-chunk?)
            (combine-code-chunks {})
-           expand-code-refs))))
+           expand-code-refs
+           ))))
 
 (defn output-code-chunks [chunks]
   (doseq [chunk chunks]
@@ -136,6 +142,7 @@
 
 (defn tangle-text [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
+   ;(info chunks)
     (output-code-chunks
      (cond
        (not (empty? output-chunks))
