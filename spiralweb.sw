@@ -199,7 +199,7 @@ permitted. From this list
 
 (def at-directive
   (parser (literal "@@@@")
-          :using (fn [_] {:type :at-directive :value "@@@@"})))
+          :using (fn [_] {:type :at-directive :value "@@"})))
 
 (def comma
   (parser (match \,)
@@ -839,7 +839,7 @@ have already assembled.
            [clojure.tools.cli :refer [parse-opts]]
            [taoensso.timbre :as t :refer [merge-config!]]))
 
-(merge-config! {:level :debug})
+(merge-config! {:level :error})
 
 (def cli-options
   [["-c" "--chunk CHUNK"]

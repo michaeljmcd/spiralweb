@@ -34,7 +34,7 @@
 
 (def at-directive
   (parser (literal "@@")
-          :using (fn [_] {:type :at-directive :value "@@"})))
+          :using (fn [_] {:type :at-directive :value "@"})))
 
 (def comma
   (parser (match \,)
