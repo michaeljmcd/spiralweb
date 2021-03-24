@@ -41,3 +41,7 @@
         "Inner" inner-chunk}
           ))
 ))
+(deftest simple-concatenation-tests
+ (let [text (load-resource "simple-concat.sw")]
+  (is (= "\n1\n\n 2\n \n"
+         (with-out-str (tangle-text text ["Example"]))))))
