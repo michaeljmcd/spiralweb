@@ -2,22 +2,19 @@
  :deps    {org.clojure/tools.cli {:mvn/version "1.0.206"}
            com.taoensso/timbre {:mvn/version "5.1.2"}
            github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa"
-                                      :sha "b3a139cf6cd7667358b3d5f28ffed8ab099decb9"}
- }
- :aliases  {
-     :test     {:extra-paths ["test" "test-resources"]
-                :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}}
-     :test/kaocha     {:extra-paths ["test" "test-resources"]
-                :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}
-                :main-opts ["-m" "kaocha.runner"]}
-  :test/kaocha-cloverage
-  {:extra-paths ["test" "test-resources"]
-   :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.60.945"}
-                 lambdaisland/kaocha-cloverage {:mvn/version "1.0.75"}}
-   :main-opts   ["-m" "kaocha.runner"]}
-     :outdated {:extra-deps {olical/depot {:mvn/version "2.3.0"}}
-                          :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
-     :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
-              :main-opts ["-m" "cljfmt.main"]}
-     :spiralweb {:main-opts ["-m" "spiralweb.cli"]}
- }}
+                                      :sha "b3a139cf6cd7667358b3d5f28ffed8ab099decb9"}}
+ :aliases  {:test     {:extra-paths ["test" "test-resources"]
+                       :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}}
+            :test/kaocha     {:extra-paths ["test" "test-resources"]
+                              :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}
+                              :main-opts ["-m" "kaocha.runner"]}
+            :test/kaocha-cloverage
+            {:extra-paths ["test" "test-resources"]
+             :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.60.945"}
+                           lambdaisland/kaocha-cloverage {:mvn/version "1.0.75"}}
+             :main-opts   ["-m" "kaocha.runner"]}
+            :outdated {:extra-deps {olical/depot {:mvn/version "2.3.0"}}
+                       :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
+            :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
+                     :main-opts ["-m" "cljfmt.main"]}
+            :spiralweb {:main-opts ["-m" "spiralweb.cli"]}}}
