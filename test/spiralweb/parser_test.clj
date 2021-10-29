@@ -17,7 +17,37 @@
 (deftest text-tests
   (is (= [{:type :text :value "asdf"}]
          (result (apply-parser t-text "asdf"))))
-  (is (failure? (apply-parser t-text "@foo"))))
+  (is (failure? (apply-parser t-text "@foo")))
+  (is (failure? (apply-parser t-text "[foo")))
+  (is (failure? (apply-parser t-text "]foo")))
+  (is (failure? (apply-parser t-text "=foo")))
+  (is (failure? (apply-parser t-text ",foo")))
+  (is (failure? (apply-parser t-text "\nfoo"))))
+
+(deftest code-end-tests
+  (is (= [{:type :code-end :value "@end"}]
+         (result (apply-parser code-end "@end"))))
+  (is (failure? (apply-parser code-end "@en"))))
+
+(deftest doc-directive-tests
+  (is (= [{:type :doc-directive :value "@doc"}]
+         (result (apply-parser doc-directive "@doc"))))
+  (is (failure? (apply-parser doc-directive "@do"))))
+
+(deftest code-directive-tests
+  (is (= [{:type :code-directive :value "@code"}]
+         (result (apply-parser code-directive "@code"))))
+  (is (failure? (apply-parser code-directive "@cod"))))
+
+(deftest at-directive-tests
+  (is (= [{:type :at-directive :value "@"}]
+         (result (apply-parser at-directive "@@"))))
+  (is (failure? (apply-parser at-directive "@"))))
+
+(deftest comma-directive-tests
+  (is (= [{:type :comma :value ","}]
+         (result (apply-parser comma ",33"))))
+  (is (failure? (apply-parser comma "33"))))
 
 (deftest code-definition-tests
  (let [cb "@code asdf asdf [a=b]\nasdfasdf\nddddd\n  @<asdf>\n@end"
