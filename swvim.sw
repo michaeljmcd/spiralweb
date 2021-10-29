@@ -18,7 +18,7 @@ elseif exists("b:current_syntax")
   finish
   w
 endif
-@=
+@end
 
 Before continuing, we define parameters for the backend and programming
 language syntax.
@@ -27,7 +27,7 @@ language syntax.
 if !exists("spiralweb_backend")
     let spiralweb_backend = "markdown" " this is the only backend at the moment
 endif
-@=
+@end
 
 Next, we define the base syntax to be that of the backend. Afterwards, we
 set the code regions to default to the language in question.
@@ -44,7 +44,7 @@ else
 endif
 
 syntax match codeChunkStart "^@@code .*$" display
-syntax match codeChunkEnd "^@@=$" display
+syntax match codeChunkEnd "^@@end$" display
 highlight link codeChunkStart Type
 highlight link codeChunkEnd Type
 if !exists("spiralweb_language")
@@ -53,17 +53,17 @@ endif
 
 execute "syntax include @@Code syntax/" . spiralweb_language . ".vim"
 " syntax include @@Code syntax/vim.vim
-syntax region codeChunk start="^@@code .*$" end="^@@=$" contains=@@Code containedin=ALL keepend
-@=
+syntax region codeChunk start="^@@code .*$" end="^@@end$" contains=@@Code containedin=ALL keepend
+@end
 
 Finally, we add instructions to do code folding (iff the option is set).
 
 @code sw.vim
 if exists("spiralweb_fold_code") && spiralweb_fold_code == 1
     set foldmethod=syntax
-    syntax region codeChunk start="^@@code .*$" end="^@@=$" transparent fold containedin=ALL keepend
+    syntax region codeChunk start="^@@code .*$" end="^@@end$" transparent fold containedin=ALL keepend
 endif
-@=
+@end
 
 In conclusion, this gets us a basic, serviceable vim-mode for use with
 SpiralWeb. In the future, it would be nice to integrate the `out`

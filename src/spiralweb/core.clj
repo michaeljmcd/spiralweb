@@ -137,7 +137,10 @@
            ))))
 
 (defn output-code-chunks [chunks]
+  (println chunks)
   (doseq [chunk chunks]
+    (info "Preparing to output chunk " (:name chunk))
+
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
@@ -166,5 +169,3 @@
      (info "Tangling file " f)
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
-
-
