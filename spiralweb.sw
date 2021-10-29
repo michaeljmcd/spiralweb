@@ -218,6 +218,46 @@ permitted. From this list
           :using (fn [_] {:type :close-proplist :value "]"})))
 @end
 
+The intent of most of these should be fairly obvious, but we include tests
+below for completeness's sake.
+
+@code Parser Tests
+(deftest text-tests
+  (is (= [{:type :text :value "asdf"}]
+         (result (apply-parser t-text "asdf"))))
+  (is (failure? (apply-parser t-text "@foo")))
+  (is (failure? (apply-parser t-text "[foo")))
+  (is (failure? (apply-parser t-text "]foo")))
+  (is (failure? (apply-parser t-text "=foo")))
+  (is (failure? (apply-parser t-text ",foo")))
+  (is (failure? (apply-parser t-text "\nfoo"))))
+
+(deftest code-end-tests
+  (is (= [{:type :code-end :value "@end"}]
+         (result (apply-parser code-end "@end"))))
+  (is (failure? (apply-parser code-end "@en"))))
+
+(deftest doc-directive-tests
+  (is (= [{:type :doc-directive :value "@doc"}]
+         (result (apply-parser doc-directive "@doc"))))
+  (is (failure? (apply-parser doc-directive "@do"))))
+
+(deftest code-directive-tests
+  (is (= [{:type :code-directive :value "@code"}]
+         (result (apply-parser code-directive "@code"))))
+  (is (failure? (apply-parser code-directive "@cod"))))
+
+(deftest at-directive-tests
+  (is (= [{:type :at-directive :value "@"}]
+         (result (apply-parser at-directive "@@"))))
+  (is (failure? (apply-parser at-directive "@"))))
+
+(deftest comma-directive-tests
+  (is (= [{:type :comma :value ","}]
+         (result (apply-parser comma ",33"))))
+  (is (failure? (apply-parser comma "33"))))
+@end
+
 ### Grammar ###
 
 A web is, at the end of the day, a web of chunks. This idea is easy to
@@ -248,7 +288,7 @@ The definition starts with the explicit chunk definitions and then uses
            code-directive 
            t-text 
            (optional property-list) 
-           nl 
+           (discard nl)
            (plus codeline)
            code-end)
           :using
@@ -397,15 +437,14 @@ so we will restate our parsing rules accordingly.
  (is (success? (apply-parser non-breaking-ws [\space])))
  (is (failure? (apply-parser non-breaking-ws [\a \space]))))
 
+@<Parser Tests>
+
 (deftest code-definition-tests
  (let [cb "@@code asdf asdf [a=b]\nasdfasdf\nddddd\n  @@<asdf>\n@@end"
-       exp '[{:type :code, :options [{:type :property, :value {:name "a", :value "b"}}], :name "asdf asdf", :lines ({:type :newline, :value "\n"} {:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
+       exp '[{:type :code, :options [{:type :property, :value {:name "a", :value "b"}}], :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
        act (apply-parser code-definition cb)]
-       (pr-str act)
   (is (= exp (result act)))
   (is (success? act))))
-
-
 @end
 
 ### Conclusion ###
@@ -525,7 +564,9 @@ webs to the function `tangle-text`. We will define that next:
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
 
-(defn tangle-text [txt output-chunks]
+(defn tangle-text 
+  "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
+  [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
    ;(info chunks)
     (output-code-chunks
@@ -687,7 +728,7 @@ understanding is solid.
            [edessa.parser :refer [success? failure? apply-parser result]]
            [taoensso.timbre :as t :refer [debug error info merge-config!]]))
 
-(merge-config! {:level :info})
+(merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
 
 (deftest tangle-edge-case-tests
  (let [circular-text "@@code a\n@@<b>\n@@end\n@@code b\n@@<a>\n@@end"
@@ -716,7 +757,7 @@ print('Hello World')
 
 (deftest simple-tangle-test
  (let [simple-text (load-resource "simple.sw")]
-  (is (= "\nprint('Hello World')\n\n" ; TODO: FIXME
+   (is (= "print('Hello World')\n\n"
          (with-out-str (tangle-text simple-text ["My Code"]))))))
 @end
 
@@ -750,7 +791,7 @@ if true:
 @code Tangling Tests
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
-  (is (= "\nprint('Hello World')\n\n\nif true:\n  print(1 + 2)\n  \n\n\n"
+       (is (= "print('Hello World')\n\nif true:\n  print(1 + 2)\n  \n\n"
          (with-out-str (tangle-text text ["Example"]))))))
 @end
 
@@ -772,9 +813,7 @@ if true:
            :lines [{:type :text, :value "asdf"}
                    {:type :text, :value "ggg"}
                    {:type :text, :value "zzzz"}]}
-        "Inner" inner-chunk}
-          ))
-))
+        "Inner" inner-chunk}))))
 @end
 
 Another feature of code expansion is the idea that chunks that are named
@@ -800,7 +839,7 @@ Which we then verify:
 @code Tangling Tests
 (deftest simple-concatenation-tests
  (let [text (load-resource "simple-concat.sw")]
-  (is (= "\n1\n\n 2\n \n"
+     (is (= "1\n 2\n \n"
          (with-out-str (tangle-text text ["Example"]))))))
 @end
 
