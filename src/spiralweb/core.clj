@@ -142,7 +142,9 @@
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
 
-(defn tangle-text [txt output-chunks]
+(defn tangle-text 
+  "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
+  [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
    ;(info chunks)
     (output-code-chunks

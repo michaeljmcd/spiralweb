@@ -5,7 +5,7 @@
            [edessa.parser :refer [success? failure? apply-parser result]]
            [taoensso.timbre :as t :refer [debug error info merge-config!]]))
 
-(merge-config! {:level :info})
+(merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
 
 (deftest tangle-edge-case-tests
  (let [circular-text "@code a\n@<b>\n@end\n@code b\n@<a>\n@end"
@@ -15,12 +15,14 @@
 
 (deftest simple-tangle-test
  (let [simple-text (load-resource "simple.sw")]
-  (is (= "\nprint('Hello World')\n\n" ; TODO: FIXME
+  (is (= "print('Hello World')\n\n"
          (with-out-str (tangle-text simple-text ["My Code"]))))))
+
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
-  (is (= "\nprint('Hello World')\n\n\nif true:\n  print(1 + 2)\n  \n\n\n"
+  (is (= "print('Hello World')\n\nif true:\n  print(1 + 2)\n  \n\n"
          (with-out-str (tangle-text text ["Example"]))))))
+
 (deftest expand-refs-simple
  (let [chunk {:type :code 
               :name "Outer"
@@ -38,10 +40,10 @@
            :lines [{:type :text, :value "asdf"}
                    {:type :text, :value "ggg"}
                    {:type :text, :value "zzzz"}]}
-        "Inner" inner-chunk}
-          ))
-))
+        "Inner" inner-chunk}))))
+
 (deftest simple-concatenation-tests
  (let [text (load-resource "simple-concat.sw")]
-  (is (= "\n1\n\n 2\n \n"
+   (info (tangle-text text ["Example"]))
+  (is (= "1\n 2\n \n"
          (with-out-str (tangle-text text ["Example"]))))))

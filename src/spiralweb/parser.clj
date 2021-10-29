@@ -130,7 +130,7 @@
            code-directive 
            t-text 
            (optional property-list) 
-           nl 
+           (discard nl)
            (plus codeline)
            code-end)
           :using
