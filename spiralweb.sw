@@ -608,6 +608,16 @@ expand them in order. This allows us to deal with transitive references and
 has the nice benefit of giving us a way to identify loops.
 
 @code Expand Code References
+(defn- append-chunk [result chunk]
+  (letfn [(append-lines [x] (concat (:lines chunk) x))
+          (append-options [x] (concat (:options chunk) x))
+          ]
+    (-> result
+      (update-in [(:name chunk) :lines] append-lines)
+      (update-in [(:name chunk) :options] append-options) ; TODO: changing this to a map would be better
+      )
+    ))
+
 (defn combine-code-chunks [result chunks]
   (let [chunk (first chunks)]
     (cond
@@ -617,8 +627,7 @@ has the nice benefit of giving us a way to identify loops.
       (recur result (rest chunks))
       (contains? result (:name chunk))
       (recur
-       (update-in result [(:name chunk) :lines]
-                  (fn [x] (concat (:lines chunk) x)))
+       (append-chunk result chunk)
        (rest chunks))
       :else
       (recur (assoc result (:name chunk) chunk)
