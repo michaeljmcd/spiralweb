@@ -137,7 +137,6 @@
            ))))
 
 (defn output-code-chunks [chunks]
-  (println chunks)
   (doseq [chunk chunks]
     (info "Preparing to output chunk " (:name chunk))
 

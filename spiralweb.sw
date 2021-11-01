@@ -225,7 +225,7 @@ below for completeness's sake.
 (deftest text-tests
   (is (= [{:type :text :value "asdf"}]
          (result (apply-parser t-text "asdf"))))
-  (is (failure? (apply-parser t-text "@foo")))
+  (is (failure? (apply-parser t-text "@@foo")))
   (is (failure? (apply-parser t-text "[foo")))
   (is (failure? (apply-parser t-text "]foo")))
   (is (failure? (apply-parser t-text "=foo")))
@@ -233,24 +233,24 @@ below for completeness's sake.
   (is (failure? (apply-parser t-text "\nfoo"))))
 
 (deftest code-end-tests
-  (is (= [{:type :code-end :value "@end"}]
-         (result (apply-parser code-end "@end"))))
-  (is (failure? (apply-parser code-end "@en"))))
+  (is (= [{:type :code-end :value "@@end"}]
+         (result (apply-parser code-end "@@end"))))
+  (is (failure? (apply-parser code-end "@@en"))))
 
 (deftest doc-directive-tests
-  (is (= [{:type :doc-directive :value "@doc"}]
-         (result (apply-parser doc-directive "@doc"))))
-  (is (failure? (apply-parser doc-directive "@do"))))
+  (is (= [{:type :doc-directive :value "@@doc"}]
+         (result (apply-parser doc-directive "@@doc"))))
+  (is (failure? (apply-parser doc-directive "@@do"))))
 
 (deftest code-directive-tests
-  (is (= [{:type :code-directive :value "@code"}]
-         (result (apply-parser code-directive "@code"))))
-  (is (failure? (apply-parser code-directive "@cod"))))
+  (is (= [{:type :code-directive :value "@@code"}]
+         (result (apply-parser code-directive "@@code"))))
+  (is (failure? (apply-parser code-directive "@@cod"))))
 
 (deftest at-directive-tests
-  (is (= [{:type :at-directive :value "@"}]
-         (result (apply-parser at-directive "@@"))))
-  (is (failure? (apply-parser at-directive "@"))))
+  (is (= [{:type :at-directive :value "@@"}]
+         (result (apply-parser at-directive "@@@@"))))
+  (is (failure? (apply-parser at-directive "@@"))))
 
 (deftest comma-directive-tests
   (is (= [{:type :comma :value ","}]
