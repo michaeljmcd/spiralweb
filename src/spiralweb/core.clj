@@ -134,8 +134,7 @@
            first
            (filter is-code-chunk?)
            (combine-code-chunks {})
-           expand-code-refs
-           ))))
+           expand-code-refs))))
 
 (defn output-code-chunks [chunks]
   (doseq [chunk chunks]
@@ -169,3 +168,17 @@
      (info "Tangling file " f)
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
+
+(defn edn-web
+  "Accepts a list of paths and produces a map of paths to parsed webs."
+  [paths]
+  (letfn [(edn-web-inner [result paths]
+            (cond
+              (empty? paths) result
+              :else
+              (recur 
+                (assoc result
+                       (first paths) 
+                       (refine-code-chunks (slurp (first paths))))
+                (rest paths))))]
+    (edn-web-inner {} paths)))

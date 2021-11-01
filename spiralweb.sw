@@ -559,6 +559,20 @@ turn.
      (info "Tangling file " f)
      (tangle-text (slurp f) output-chunks)))
   ([files] (tangle files nil)))
+
+(defn edn-web
+  "Accepts a list of paths and produces a map of paths to parsed webs."
+  [paths]
+  (letfn [(edn-web-inner [result paths]
+            (cond
+              (empty? paths) result
+              :else
+              (recur 
+                (assoc result
+                       (first paths) 
+                       (refine-code-chunks (slurp (first paths))))
+                (rest paths))))]
+    (edn-web-inner {} paths)))
 @end
 
 This definition postpones the work of actually tangling the individual
@@ -604,8 +618,7 @@ same name (concatenating the contents) and expands out the references.
            first
            (filter is-code-chunk?)
            (combine-code-chunks {})
-           expand-code-refs
-           ))))
+           expand-code-refs))))
 @end
 
 Most of this is fairly straightforward. The most interesting bit was to
@@ -922,9 +935,10 @@ have already assembled.
 
 @code [out=src/spiralweb/cli.clj]
 (ns spiralweb.cli
- (:require [spiralweb.core :refer [tangle]]
+ (:require [spiralweb.core :refer [tangle edn-web]]
            [clojure.tools.cli :refer [parse-opts]]
-           [taoensso.timbre :as t :refer [merge-config!]]))
+           [taoensso.timbre :as t :refer [merge-config!]]
+           [clojure.pprint :refer [pprint]]))
 
 (merge-config! {:level :error})
 
@@ -938,6 +952,7 @@ have already assembled.
   (let [opts (parse-opts args cli-options)]
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
+      "edn" (pprint (edn-web (rest (:arguments opts))))
       "help" (println "Help!"))))
 @end
 
