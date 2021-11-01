@@ -9,15 +9,10 @@
 (defn is-code-chunk? [c]
   (= (:type c) :code))
 
-(defn output-option? [opt]
-  (= "out" (-> opt :value :name)))
-
-(defn output-path [c]
-  (->
-   (filter output-option? (:options c))
-   first
-   :value
-   :value))
+(defn output-path 
+  "Accepts a chunk and returns its given output path, if any."
+  [c]
+  (get-in c [:options "out"]))
 
 (defn has-output-path?
   "Examines a chunk map and indicates whether there is an output path specified on the chunk."
@@ -29,13 +24,10 @@
 
 (defn- append-chunk [result chunk]
   (letfn [(append-lines [x] (concat (:lines chunk) x))
-          (append-options [x] (concat (:options chunk) x))
-          ]
+          (append-options [x] (merge (:options x) (:options chunk)))]
     (-> result
       (update-in [(:name chunk) :lines] append-lines)
-      (update-in [(:name chunk) :options] append-options) ; TODO: changing this to a map would be better
-      )
-    ))
+      (update-in [(:name chunk) :options] append-options))))
 
 (defn combine-code-chunks [result chunks]
   (let [chunk (first chunks)]

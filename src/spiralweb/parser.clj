@@ -125,6 +125,15 @@
            chunkref)
    :name "Codeline"))
 
+(defn proplist->map [props]
+  (apply hash-map
+         (flatten (map (fn [x] 
+                         (let [kv (:value x)]
+                           [(:name kv) (:value kv)]
+                           )
+                         ) props)))
+  )
+
 (def code-definition
   (parser (then 
            code-directive 
@@ -138,7 +147,7 @@
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                   props (flatten (map :value (filter prop-token? all-tokens)))]
               {:type :code
-               :options props
+               :options (proplist->map props)
                :name (-> n :value trim)
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
@@ -148,7 +157,7 @@
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                 props (flatten (map :value (filter prop-token? all-tokens)))]
-            {:type :doc :options props
+            {:type :doc :options (proplist->map props)
              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (def web (star 

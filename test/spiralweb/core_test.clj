@@ -7,6 +7,10 @@
 
 (merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
 
+(deftest output-path-tests
+  (is (= "foo.txt"
+         (output-path {:type :code :options {"out" "foo.txt"}}))))
+
 (deftest tangle-edge-case-tests
  (let [circular-text "@code a\n@<b>\n@end\n@code b\n@<a>\n@end"
        result (tangle-text circular-text [])]

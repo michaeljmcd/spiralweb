@@ -49,9 +49,14 @@
          (result (apply-parser comma ",33"))))
   (is (failure? (apply-parser comma "33"))))
 
+(deftest proplist-to-map-tests
+  (is (= {"asdf" 1 "1 2 3" 4}
+         (proplist->map [{:type :property :value {:name "asdf" :value 1}}
+                         {:type :property :value {:name "1 2 3" :value 4}}]))))
+
 (deftest code-definition-tests
  (let [cb "@code asdf asdf [a=b]\nasdfasdf\nddddd\n  @<asdf>\n@end"
-       exp '[{:type :code, :options [{:type :property, :value {:name "a", :value "b"}}], :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
+       exp '[{:type :code, :options {"a" "b"}, :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
        act (apply-parser code-definition cb)]
        (pr-str act)
   (is (= exp (result act)))

@@ -283,6 +283,14 @@ The definition starts with the explicit chunk definitions and then uses
 `doclines` as a fallback. Let's consider the code definition first.
 
 @code Code Chunk Rule
+(defn proplist->map [props]
+  (apply hash-map
+         (flatten (map (fn [x] 
+                         (let [kv (:value x)]
+                           [(:name kv) (:value kv)]
+                           )
+                         ) props)))
+  )
 (def code-definition
   (parser (then 
            code-directive 
@@ -438,10 +446,14 @@ so we will restate our parsing rules accordingly.
  (is (failure? (apply-parser non-breaking-ws [\a \space]))))
 
 @<Parser Tests>
+(deftest proplist-to-map-tests
+  (is (= {"asdf" 1 "1 2 3" 4}
+         (proplist->map [{:type :property :value {:name "asdf" :value 1}}
+                         {:type :property :value {:name "1 2 3" :value 4}}]))))
 
 (deftest code-definition-tests
  (let [cb "@@code asdf asdf [a=b]\nasdfasdf\nddddd\n  @@<asdf>\n@@end"
-       exp '[{:type :code, :options [{:type :property, :value {:name "a", :value "b"}}], :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
+       exp '[{:type :code, :options {"a" "b"}, :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
        act (apply-parser code-definition cb)]
   (is (= exp (result act)))
   (is (success? act))))
@@ -492,15 +504,10 @@ here.
 (defn is-code-chunk? [c]
   (= (:type c) :code))
 
-(defn output-option? [opt]
-  (= "out" (-> opt :value :name)))
-
-(defn output-path [c]
-  (->
-   (filter output-option? (:options c))
-   first
-   :value
-   :value))
+(defn output-path 
+  "Accepts a chunk and returns its given output path, if any."
+  [c]
+  (get-in c [:options "out"]))
 
 (defn has-output-path?
   "Examines a chunk map and indicates whether there is an output path specified on the chunk."
@@ -610,13 +617,10 @@ has the nice benefit of giving us a way to identify loops.
 @code Expand Code References
 (defn- append-chunk [result chunk]
   (letfn [(append-lines [x] (concat (:lines chunk) x))
-          (append-options [x] (concat (:options chunk) x))
-          ]
+          (append-options [x] (concat (:options chunk) x))]
     (-> result
       (update-in [(:name chunk) :lines] append-lines)
-      (update-in [(:name chunk) :options] append-options) ; TODO: changing this to a map would be better
-      )
-    ))
+      (update-in [(:name chunk) :options] append-options))))
 
 (defn combine-code-chunks [result chunks]
   (let [chunk (first chunks)]
@@ -738,6 +742,10 @@ understanding is solid.
            [taoensso.timbre :as t :refer [debug error info merge-config!]]))
 
 (merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
+
+(deftest output-path-tests
+  (is (= "foo.txt"
+         (output-path {:type :code :options {"out" "foo.txt"}}))))
 
 (deftest tangle-edge-case-tests
  (let [circular-text "@@code a\n@@<b>\n@@end\n@@code b\n@@<a>\n@@end"
