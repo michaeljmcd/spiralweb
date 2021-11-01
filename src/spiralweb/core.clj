@@ -89,7 +89,7 @@
         [sorted-names leftovers] (ts-inner [] xrefs)]
     (if (empty? leftovers)
       sorted-names
-      "ERROR! Circular reference.")))
+      (str "ERROR! Circular reference." leftovers))))
 
 (defn expand-refs [chunk all-chunks]
   (letfn [(expand-refs-inner [lines all-chunks result]

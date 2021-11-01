@@ -428,7 +428,7 @@ so we will restate our parsing rules accordingly.
 
 ### Tests ###
 
-@code Parser Tests [out=test/spiralweb/parser_test.clj]
+@code [out=test/spiralweb/parser_test.clj]
 (ns spiralweb.parser-test
  (:require [clojure.test :refer :all]
            [spiralweb.parser :refer :all]
@@ -695,7 +695,7 @@ has the nice benefit of giving us a way to identify loops.
         [sorted-names leftovers] (ts-inner [] xrefs)]
     (if (empty? leftovers)
       sorted-names
-      "ERROR! Circular reference.")))
+      (str "ERROR! Circular reference." leftovers))))
 
 (defn expand-refs [chunk all-chunks]
   (letfn [(expand-refs-inner [lines all-chunks result]
@@ -948,7 +948,10 @@ have already assembled.
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
+  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+                              [#{"edessa.parser"} :error]]
+                  :appenders {:println (t/println-appender {:stream *err*})}})
+
   (let [opts (parse-opts args cli-options)]
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
