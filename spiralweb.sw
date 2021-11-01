@@ -617,7 +617,7 @@ has the nice benefit of giving us a way to identify loops.
 @code Expand Code References
 (defn- append-chunk [result chunk]
   (letfn [(append-lines [x] (concat (:lines chunk) x))
-          (append-options [x] (concat (:options chunk) x))]
+          (append-options [x] (merge (:options x) (:options chunk)))]
     (-> result
       (update-in [(:name chunk) :lines] append-lines)
       (update-in [(:name chunk) :options] append-options))))
