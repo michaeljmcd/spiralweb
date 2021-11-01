@@ -934,6 +934,7 @@ have already assembled.
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
+  (merge-config! {:min-level :error :appenders {:println (t/println-appender {:stream *err*})}})
   (let [opts (parse-opts args cli-options)]
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
