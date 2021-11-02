@@ -4,15 +4,13 @@
            [taoensso.timbre :as t :refer [merge-config!]]
            [clojure.pprint :refer [pprint]]))
 
-(merge-config! {:level :error})
-
 (def cli-options
   [["-c" "--chunk CHUNK"]
    ["-f" "--help"]])
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
                               [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 

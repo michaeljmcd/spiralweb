@@ -313,7 +313,7 @@ Then the document definition will also seem pretty straightforward:
 
 @code Doc Chunk Rule
 (def doc-definition
-(parser (then doc-directive t-text (optional property-list) nl doclines)
+(parser (then doc-directive t-text (optional property-list) (discard nl) doclines)
         :using
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
@@ -822,7 +822,7 @@ if true:
 @code Tangling Tests
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
-       (is (= "print('Hello World')\n\nif true:\n  print(1 + 2)\n  \n\n"
+       (is (= "print('Hello World')\n  if true:\n  print(1 + 2)\n\n\n\n"
          (with-out-str (tangle-text text ["Example"]))))))
 @end
 
@@ -941,15 +941,13 @@ have already assembled.
            [taoensso.timbre :as t :refer [merge-config!]]
            [clojure.pprint :refer [pprint]]))
 
-(merge-config! {:level :error})
-
 (def cli-options
   [["-c" "--chunk CHUNK"]
    ["-f" "--help"]])
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
                               [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 

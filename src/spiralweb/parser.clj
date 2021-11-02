@@ -150,7 +150,7 @@
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
 (def doc-definition
-(parser (then doc-directive t-text (optional property-list) nl doclines)
+(parser (then doc-directive t-text (optional property-list) (discard nl) doclines)
         :using
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
