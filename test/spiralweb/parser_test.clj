@@ -58,7 +58,5 @@
  (let [cb "@code asdf asdf [a=b]\nasdfasdf\nddddd\n  @<asdf>\n@end"
        exp '[{:type :code, :options {"a" "b"}, :name "asdf asdf", :lines ({:type :text, :value "asdfasdf"} {:type :newline, :value "\n"} {:type :text, :value "ddddd"} {:type :newline, :value "\n"} {:type :text, :value "  "} {:type :chunk-reference, :name "asdf", :indent-level 0} {:type :newline, :value "\n"})}]
        act (apply-parser code-definition cb)]
-       (pr-str act)
   (is (= exp (result act)))
   (is (success? act))))
-

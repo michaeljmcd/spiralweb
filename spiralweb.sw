@@ -289,8 +289,8 @@ The definition starts with the explicit chunk definitions and then uses
                          (let [kv (:value x)]
                            [(:name kv) (:value kv)]
                            )
-                         ) props)))
-  )
+                         ) props))))
+
 (def code-definition
   (parser (then 
            code-directive 
@@ -318,7 +318,7 @@ Then the document definition will also seem pretty straightforward:
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                 props (flatten (map :value (filter prop-token? all-tokens)))]
-            {:type :doc :options props
+            {:type :doc :options (proplist->map props)
              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 @end
 
@@ -579,8 +579,9 @@ webs to the function `tangle-text`. We will define that next:
 
 @code Tangle Text
 (defn output-code-chunks [chunks]
-  (info "Preparing to output chunk " (:name chunk))
   (doseq [chunk chunks]
+    (info "Preparing to output chunk " (:name chunk))
+
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))

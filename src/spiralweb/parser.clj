@@ -110,8 +110,7 @@
           (fn [x]
             {:type :properties :value
              (filter (fn [y] (and (not (nil? y))
-                                  (= :property (:type y)))) x)}
-            )))
+                                  (= :property (:type y)))) x)})))
 
 (def codeline
   (parser
@@ -131,8 +130,7 @@
                          (let [kv (:value x)]
                            [(:name kv) (:value kv)]
                            )
-                         ) props)))
-  )
+                         ) props))))
 
 (def code-definition
   (parser (then 
