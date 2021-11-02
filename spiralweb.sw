@@ -705,7 +705,7 @@ has the nice benefit of giving us a way to identify loops.
                 (is-chunk-reference? line)
                 (recur (rest lines)
                        all-chunks
-                       (concat (-> all-chunks (get (:name line)) :lines) result))
+                       (concat (reverse (-> all-chunks (get (:name line)) :lines)) result))
                 :else (recur (rest lines) all-chunks (cons line result)))))]
    (debug "Expanding " chunk)
     (assoc chunk
