@@ -111,6 +111,10 @@ following:
 `help`
 :  Prints out a help message and exits.
 
+`edn`
+:  For debugging purposes. This command reads and parses the web and then
+   dumps the structure in EDN format.
+
 If no files are specified at the command line, the web will be read from
 stdin.
 
@@ -132,8 +136,8 @@ help:
 We will be using a recursive descent parser implemented with a library for
 Clojure named Edessa^[edessaWebsite]. This means that we will use semantic
 actions at the terminals to the grammar that will produce our internal
-representation of a web. We will build this grammar up in two layers within
-the grammar, one that deals in in the core tokens and another layer that
+representation of a web. We will build this grammar up in two layers,
+one that deals in in the core tokens and another layer that
 assembles those into chunks off of which the remaining operations will be
 performed.
 
@@ -165,7 +169,8 @@ property lists, which imply the need for the following tokens.
 * `,`
 
 Finally, we have long strings of text and places where whitespace is
-permitted. From this list 
+permitted. From this, we give a definition of the basic tokens that make up
+the grammar.
 
 @code Tokens
 (def non-breaking-ws
@@ -287,9 +292,8 @@ The definition starts with the explicit chunk definitions and then uses
   (apply hash-map
          (flatten (map (fn [x] 
                          (let [kv (:value x)]
-                           [(:name kv) (:value kv)]
-                           )
-                         ) props))))
+                           [(:name kv) (:value kv)]))
+                   props))))
 
 (def code-definition
   (parser (then 
@@ -318,7 +322,8 @@ Then the document definition will also seem pretty straightforward:
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                 props (flatten (map :value (filter prop-token? all-tokens)))]
-            {:type :doc :options (proplist->map props)
+            {:type :doc
+             :options (proplist->map props)
              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 @end
 
