@@ -304,7 +304,7 @@ The definition starts with the explicit chunk definitions and then uses
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                   props (flatten (map :value (filter prop-token? all-tokens)))]
               {:type :code
-               :options props
+               :options (proplist->map props)
                :name (-> n :value trim)
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 @end
@@ -353,7 +353,6 @@ list is just a series of name-value pairs surrounded by brackets.
             {:type :properties :value
              (filter (fn [y] (and (not (nil? y))
                                   (= :property (:type y)))) x)})))
-
 @end
 
 The core content of a code chunk is obviously a series of lines of code.
@@ -580,6 +579,7 @@ webs to the function `tangle-text`. We will define that next:
 
 @code Tangle Text
 (defn output-code-chunks [chunks]
+  (info "Preparing to output chunk " (:name chunk))
   (doseq [chunk chunks]
     (if (has-output-path? chunk)
       (spit (output-path chunk) (chunk-content chunk))
@@ -787,7 +787,7 @@ print('Hello World')
 
 (deftest simple-tangle-test
  (let [simple-text (load-resource "simple.sw")]
-   (is (= "print('Hello World')\n\n"
+  (is (= "print('Hello World')\n\n"
          (with-out-str (tangle-text simple-text ["My Code"]))))))
 @end
 
@@ -933,7 +933,7 @@ usable command line application.
 Fortunately, this is relatively simple to assemble from the pieces that we
 have already assembled.
 
-@code [out=src/spiralweb/cli.clj]
+@code SpiralWeb CLI [out=src/spiralweb/cli.clj]
 (ns spiralweb.cli
  (:require [spiralweb.core :refer [tangle edn-web]]
            [clojure.tools.cli :refer [parse-opts]]
