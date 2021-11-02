@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/). This project follows the conventions of [semver.org](http://semver.org/).
 
 ## [Unreleased]
+### Changed
+* Changed the chunk end indicator from `@=` to `@end`.
+* Ported SpiralWeb from Python 3 to Clojure.
+* Added `edn` subcommand to dump out a parsed web for debugging.
 
 ## [0.3] - 2017-10-12
 ### Changed
