@@ -646,16 +646,16 @@ has the nice benefit of giving us a way to identify loops.
   (let [chunk (first chunks)]
     (cond
       (empty? chunks)
-      result
+        result
       (not (is-code-chunk? chunk))
-      (recur result (rest chunks))
+        (recur result (rest chunks))
       (contains? result (:name chunk))
-      (recur
-       (append-chunk result chunk)
-       (rest chunks))
+        (recur
+         (append-chunk result chunk)
+         (rest chunks))
       :else
-      (recur (assoc result (:name chunk) chunk)
-             (rest chunks)))))
+        (recur (assoc result (:name chunk) chunk)
+               (rest chunks)))))
 
 (defn build-chunk-crossrefs
   "Accepts a sequence of chunks, some of which may be documentation chunks 
@@ -960,6 +960,7 @@ have already assembled.
 
 @code SpiralWeb CLI [out=src/spiralweb/cli.clj]
 (ns spiralweb.cli
+ (:gen-class)
  (:require [spiralweb.core :refer [tangle edn-web weave]]
            [clojure.tools.cli :refer [parse-opts]]
            [taoensso.timbre :as t :refer [merge-config!]]

@@ -1,4 +1,5 @@
 (ns spiralweb.cli
+ (:gen-class)
  (:require [spiralweb.core :refer [tangle edn-web weave]]
            [clojure.tools.cli :refer [parse-opts]]
            [taoensso.timbre :as t :refer [merge-config!]]

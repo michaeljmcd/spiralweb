@@ -17,4 +17,6 @@
                        :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
             :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
                      :main-opts ["-m" "cljfmt.main"]}
+            :build {:deps {io.github.clojure/tools.build {:git/tag "v0.6.2" :git/sha "226fb52"}}
+                    :ns-default build}
             :spiralweb {:main-opts ["-m" "spiralweb.cli"]}}}
