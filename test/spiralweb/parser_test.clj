@@ -60,3 +60,31 @@
        act (apply-parser code-definition cb)]
   (is (= exp (result act)))
   (is (success? act))))
+
+(deftest doc-definition-tests
+ (let [cb "@doc asdf\nfoo\nbar"
+       exp [{:lines [{:type :text, :value "foo"} {:type :newline, :value "\n"} {:type :text, :value "bar"}],
+     :name "asdf",
+     :options {},
+     :type :doc}]
+       act (apply-parser doc-definition cb)]
+   (is (= exp (result act)))))
+
+(deftest web-tests
+  (let [cb "@doc asdf [out=baz.txt]\nfoo\nbar\n@code aaa [out=foo.txt]\n1+1\n@end\nasdf\n"
+         exp '[{:lines ({:type :text, :value "foo"}
+              {:type :newline, :value "\n"}
+              {:type :text, :value "bar"}
+              {:type :newline, :value "\n"}),
+      :name "asdf",
+      :options {"out" "baz.txt"},
+      :type :doc}
+     {:lines ({:type :text, :value "1+1"} {:type :newline, :value "\n"}),
+      :name "aaa",
+      :options {"out" "foo.txt"},
+      :type :code}
+     {:type :newline, :value "\n"}
+     {:type :text, :value "asdf"}
+     {:type :newline, :value "\n"}]
+         act (apply-parser web cb)]
+     (is (= exp (result act)))))

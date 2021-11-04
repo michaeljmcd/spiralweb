@@ -317,14 +317,20 @@ Then the document definition will also seem pretty straightforward:
 
 @code Doc Chunk Rule
 (def doc-definition
-(parser (then doc-directive t-text (optional property-list) (discard nl) doclines)
+(parser (then 
+         doc-directive
+         t-text
+         (optional property-list)
+         (discard nl)
+         doclines)
         :using
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                 props (flatten (map :value (filter prop-token? all-tokens)))]
             {:type :doc
              :options (proplist->map props)
-             :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
+             :name (-> n :value trim)
+             :lines (filter #(not (prop-token? %)) lines)}))))
 @end
 
 Both code and documentation chunks allow properties to be associated with
@@ -461,6 +467,34 @@ so we will restate our parsing rules accordingly.
        act (apply-parser code-definition cb)]
   (is (= exp (result act)))
   (is (success? act))))
+
+(deftest doc-definition-tests
+ (let [cb "@@doc asdf\nfoo\nbar"
+       exp [{:lines [{:type :text, :value "foo"} {:type :newline, :value "\n"} {:type :text, :value "bar"}],
+     :name "asdf",
+     :options {},
+     :type :doc}]
+       act (apply-parser doc-definition cb)]
+   (is (= exp (result act)))))
+
+(deftest web-tests
+  (let [cb "@@doc asdf [out=baz.txt]\nfoo\nbar\n@@code aaa [out=foo.txt]\n1+1\n@@end\nasdf\n"
+         exp '[{:lines ({:type :text, :value "foo"}
+              {:type :newline, :value "\n"}
+              {:type :text, :value "bar"}
+              {:type :newline, :value "\n"}),
+      :name "asdf",
+      :options {"out" "baz.txt"},
+      :type :doc}
+     {:lines ({:type :text, :value "1+1"} {:type :newline, :value "\n"}),
+      :name "aaa",
+      :options {"out" "foo.txt"},
+      :type :code}
+     {:type :newline, :value "\n"}
+     {:type :text, :value "asdf"}
+     {:type :newline, :value "\n"}]
+         act (apply-parser web cb)]
+     (is (= exp (result act)))))
 @end
 
 ### Conclusion ###
@@ -932,7 +966,8 @@ output sequence, we can dump those out alone.
 
 @code Weave Text
 (defn weave-text [text chunks]
- (apply-parser web text))
+ (result (apply-parser web text))
+ )
 @end
 
 @code Weaving
@@ -944,7 +979,7 @@ output sequence, we can dump those out alone.
  ([files chunks]
   (doseq [f files]
      ; TODO: error handling
-     (info "Tangling file " f)
+     (info "Weaving file " f)
      (weave-text (slurp f) chunks))))
 @end
 

@@ -185,7 +185,8 @@
 
 
 (defn weave-text [text chunks]
- (apply-parser web text))
+ (result (apply-parser web text))
+ )
 
 
 (defn weave
@@ -194,6 +195,6 @@
  ([files chunks]
   (doseq [f files]
      ; TODO: error handling
-     (info "Tangling file " f)
+     (info "Weaving file " f)
      (weave-text (slurp f) chunks))))
 
