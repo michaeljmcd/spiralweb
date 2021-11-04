@@ -128,9 +128,8 @@
   (apply hash-map
          (flatten (map (fn [x] 
                          (let [kv (:value x)]
-                           [(:name kv) (:value kv)]
-                           )
-                         ) props))))
+                           [(:name kv) (:value kv)]))
+                   props))))
 
 (def code-definition
   (parser (then 
@@ -155,7 +154,8 @@
         (fn [x]
           (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                 props (flatten (map :value (filter prop-token? all-tokens)))]
-            {:type :doc :options (proplist->map props)
+            {:type :doc
+             :options (proplist->map props)
              :name (-> n :value trim) :lines (filter (comp not prop-token?) lines)}))))
 
 (def web (star 

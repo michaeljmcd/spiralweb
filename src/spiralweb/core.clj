@@ -184,3 +184,16 @@
     (edn-web-inner {} paths)))
 
 
+(defn weave-text [text chunks]
+ (apply-parser web text))
+
+
+(defn weave
+ "Accepts a list of files, extracts the documentation and writes it out."
+ ([files] (weave files nil))
+ ([files chunks]
+  (doseq [f files]
+     ; TODO: error handling
+     (info "Tangling file " f)
+     (weave-text (slurp f) chunks))))
+

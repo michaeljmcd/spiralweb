@@ -494,6 +494,7 @@ individual functions simple, we will outline the module below.
 
 @<Chunk Utilities>
 @<Tangling>
+@<Weaving>
 @end
 
 ### Chunk Utilities ###
@@ -929,6 +930,24 @@ The end result should combine chunks 1-3 under a single documentation
 chunk and chunks 4-5 under another, so that if chunks are passed to the
 output sequence, we can dump those out alone.
 
+@code Weave Text
+(defn weave-text [text chunks]
+ (apply-parser web text))
+@end
+
+@code Weaving
+@<Weave Text>
+
+(defn weave
+ "Accepts a list of files, extracts the documentation and writes it out."
+ ([files] (weave files nil))
+ ([files chunks]
+  (doseq [f files]
+     ; TODO: error handling
+     (info "Tangling file " f)
+     (weave-text (slurp f) chunks))))
+@end
+
 ## The Command Line Application ##
 
 In the previous sections, we defined the command-line syntax for the
@@ -941,7 +960,7 @@ have already assembled.
 
 @code SpiralWeb CLI [out=src/spiralweb/cli.clj]
 (ns spiralweb.cli
- (:require [spiralweb.core :refer [tangle edn-web]]
+ (:require [spiralweb.core :refer [tangle edn-web weave]]
            [clojure.tools.cli :refer [parse-opts]]
            [taoensso.timbre :as t :refer [merge-config!]]
            [clojure.pprint :refer [pprint]]))
@@ -959,6 +978,7 @@ have already assembled.
   (let [opts (parse-opts args cli-options)]
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
+      "weave" (weave (rest (:arguments opts)))
       "edn" (pprint (edn-web (rest (:arguments opts))))
       "help" (println "Help!"))))
 @end
