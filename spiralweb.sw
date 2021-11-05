@@ -317,20 +317,20 @@ Then the document definition will also seem pretty straightforward:
 
 @code Doc Chunk Rule
 (def doc-definition
-(parser (then 
-         doc-directive
-         t-text
-         (optional property-list)
-         (discard nl)
-         doclines)
-        :using
-        (fn [x]
-          (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
-                props (flatten (map :value (filter prop-token? all-tokens)))]
-            {:type :doc
-             :options (proplist->map props)
-             :name (-> n :value trim)
-             :lines (filter #(not (prop-token? %)) lines)}))))
+  (parser (then
+           doc-directive
+           t-text
+           (optional property-list)
+           (discard nl)
+           doclines)
+          :using
+          (fn [x]
+            (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
+                  props (flatten (map :value (filter prop-token? all-tokens)))]
+              {:type :doc
+               :options (proplist->map props)
+               :name (-> n :value trim)
+               :lines (filter #(not (prop-token? %)) lines)}))))
 @end
 
 Both code and documentation chunks allow properties to be associated with
@@ -443,7 +443,8 @@ so we will restate our parsing rules accordingly.
  (:require [clojure.test :refer :all]
            [spiralweb.parser :refer :all]
            [edessa.parser :refer [success? failure? apply-parser result]]
-           [taoensso.timbre :as t :refer [debug error]]))
+           [taoensso.timbre :as t :refer [debug error]]
+           [clojure.pprint :refer [pprint]]))
 
 (deftest nl-tests
  (is (success? (apply-parser nl [\newline])))
@@ -479,14 +480,14 @@ so we will restate our parsing rules accordingly.
 
 (deftest web-tests
   (let [cb "@@doc asdf [out=baz.txt]\nfoo\nbar\n@@code aaa [out=foo.txt]\n1+1\n@@end\nasdf\n"
-         exp '[{:lines ({:type :text, :value "foo"}
+         exp [{:lines [{:type :text, :value "foo"}
               {:type :newline, :value "\n"}
               {:type :text, :value "bar"}
-              {:type :newline, :value "\n"}),
+              {:type :newline, :value "\n"}],
       :name "asdf",
       :options {"out" "baz.txt"},
       :type :doc}
-     {:lines ({:type :text, :value "1+1"} {:type :newline, :value "\n"}),
+     {:lines [{:type :text, :value "1+1"} {:type :newline, :value "\n"}],
       :name "aaa",
       :options {"out" "foo.txt"},
       :type :code}
@@ -494,7 +495,8 @@ so we will restate our parsing rules accordingly.
      {:type :text, :value "asdf"}
      {:type :newline, :value "\n"}]
          act (apply-parser web cb)]
-     (is (= exp (result act)))))
+         (pprint (result act))
+     (is (= exp (first (result act))))))
 @end
 
 ### Conclusion ###
@@ -537,13 +539,18 @@ These are used throughout the surrounding sections, so we will define them
 here.
 
 @code Chunk Utilities
-(defn chunk-content [c]
+(defn chunk-content
+ "Extracts the content from a chunk."
+ [c]
   (->> c :lines (map :value) (apply str)))
 
-(defn is-code-chunk? [c]
+(defn is-code-chunk?
+ "A predicate that indicates whether a given chunk is a code chunk (as
+ opposed to a documentation chunk."
+ [c]
   (= (:type c) :code))
 
-(defn output-path 
+(defn output-path
   "Accepts a chunk and returns its given output path, if any."
   [c]
   (get-in c [:options "out"]))
@@ -1015,8 +1022,7 @@ have already assembled.
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
       "weave" (weave (rest (:arguments opts)))
-      "edn" (pprint (edn-web (rest (:arguments opts))))
-      "help" (println "Help!"))))
+      "edn" (pprint (edn-web (rest (:arguments opts)))) "help" (println "Help!"))))
 @end
 
 ### Packaging

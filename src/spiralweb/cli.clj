@@ -19,5 +19,4 @@
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
       "weave" (weave (rest (:arguments opts)))
-      "edn" (pprint (edn-web (rest (:arguments opts))))
-      "help" (println "Help!"))))
+      "edn" (pprint (edn-web (rest (:arguments opts)))) "help" (println "Help!"))))

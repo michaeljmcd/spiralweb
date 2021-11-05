@@ -2,7 +2,8 @@
  (:require [clojure.test :refer :all]
            [spiralweb.parser :refer :all]
            [edessa.parser :refer [success? failure? apply-parser result]]
-           [taoensso.timbre :as t :refer [debug error]]))
+           [taoensso.timbre :as t :refer [debug error]]
+           [clojure.pprint :refer [pprint]]))
 
 (deftest nl-tests
  (is (success? (apply-parser nl [\newline])))
@@ -72,14 +73,14 @@
 
 (deftest web-tests
   (let [cb "@doc asdf [out=baz.txt]\nfoo\nbar\n@code aaa [out=foo.txt]\n1+1\n@end\nasdf\n"
-         exp '[{:lines ({:type :text, :value "foo"}
+         exp [{:lines [{:type :text, :value "foo"}
               {:type :newline, :value "\n"}
               {:type :text, :value "bar"}
-              {:type :newline, :value "\n"}),
+              {:type :newline, :value "\n"}],
       :name "asdf",
       :options {"out" "baz.txt"},
       :type :doc}
-     {:lines ({:type :text, :value "1+1"} {:type :newline, :value "\n"}),
+     {:lines [{:type :text, :value "1+1"} {:type :newline, :value "\n"}],
       :name "aaa",
       :options {"out" "foo.txt"},
       :type :code}
@@ -87,4 +88,5 @@
      {:type :text, :value "asdf"}
      {:type :newline, :value "\n"}]
          act (apply-parser web cb)]
-     (is (= exp (result act)))))
+         (pprint (result act))
+     (is (= exp (first (result act))))))

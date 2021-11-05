@@ -3,10 +3,15 @@
            [taoensso.timbre :refer [info debug]]
            [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
-(defn chunk-content [c]
+(defn chunk-content 
+ "Extracts the content from a chunk."
+ [c]
   (->> c :lines (map :value) (apply str)))
 
-(defn is-code-chunk? [c]
+(defn is-code-chunk? 
+ "A predicate that indicates whether a given chunk is a code chunk (as
+ opposed to a documentation chunk."
+ [c]
   (= (:type c) :code))
 
 (defn output-path 
