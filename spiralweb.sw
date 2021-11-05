@@ -526,7 +526,8 @@ individual functions simple, we will outline the module below.
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
            [taoensso.timbre :refer [info debug]]
-           [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
+           [edessa.parser :refer [apply-parser failure? input-remaining? result]]
+           [clojure.pprint :refer [pprint]]))
 
 @<Chunk Utilities>
 @<Tangling>
@@ -973,7 +974,7 @@ output sequence, we can dump those out alone.
 
 @code Weave Text
 (defn weave-string [text chunks]
- (result (apply-parser web text))
+ (pprint (apply-parser web text))
  )
 @end
 
@@ -1022,7 +1023,8 @@ have already assembled.
     (case (first (:arguments opts))
       "tangle" (tangle (rest (:arguments opts)))
       "weave" (weave (rest (:arguments opts)))
-      "edn" (pprint (edn-web (rest (:arguments opts)))) "help" (println "Help!"))))
+      "edn" (pprint (edn-web (rest (:arguments opts))))
+      "help" (println "Help!"))))
 @end
 
 ### Packaging

@@ -1,7 +1,8 @@
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
            [taoensso.timbre :refer [info debug]]
-           [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
+           [edessa.parser :refer [apply-parser failure? input-remaining? result]]
+           [clojure.pprint :refer [pprint]]))
 
 (defn chunk-content
  "Extracts the content from a chunk."
@@ -190,7 +191,7 @@
 
 
 (defn weave-string [text chunks]
- (result (apply-parser web text))
+ (pprint (apply-parser web text))
  )
 
 
