@@ -3,18 +3,18 @@
            [taoensso.timbre :refer [info debug]]
            [edessa.parser :refer [apply-parser failure? input-remaining? result]]))
 
-(defn chunk-content 
+(defn chunk-content
  "Extracts the content from a chunk."
  [c]
   (->> c :lines (map :value) (apply str)))
 
-(defn is-code-chunk? 
+(defn is-code-chunk?
  "A predicate that indicates whether a given chunk is a code chunk (as
  opposed to a documentation chunk."
  [c]
   (= (:type c) :code))
 
-(defn output-path 
+(defn output-path
   "Accepts a chunk and returns its given output path, if any."
   [c]
   (get-in c [:options "out"]))
@@ -149,7 +149,7 @@
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
 
-(defn tangle-text 
+(defn tangle-string 
   "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
   [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
@@ -171,7 +171,7 @@
    (doseq [f files]
      ; TODO: error handling
      (info "Tangling file " f)
-     (tangle-text (slurp f) output-chunks)))
+     (tangle-string (slurp f) output-chunks)))
   ([files] (tangle files nil)))
 
 (defn edn-web
@@ -189,7 +189,7 @@
     (edn-web-inner {} paths)))
 
 
-(defn weave-text [text chunks]
+(defn weave-string [text chunks]
  (result (apply-parser web text))
  )
 
@@ -201,5 +201,5 @@
   (doseq [f files]
      ; TODO: error handling
      (info "Weaving file " f)
-     (weave-text (slurp f) chunks))))
+     (weave-string (slurp f) chunks))))
 

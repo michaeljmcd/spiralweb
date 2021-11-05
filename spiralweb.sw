@@ -603,7 +603,7 @@ turn.
    (doseq [f files]
      ; TODO: error handling
      (info "Tangling file " f)
-     (tangle-text (slurp f) output-chunks)))
+     (tangle-string (slurp f) output-chunks)))
   ([files] (tangle files nil)))
 
 (defn edn-web
@@ -622,7 +622,7 @@ turn.
 @end
 
 This definition postpones the work of actually tangling the individual
-webs to the function `tangle-text`. We will define that next:
+webs to the function `tangle-string`. We will define that next:
 
 @code Tangle Text
 (defn output-code-chunks [chunks]
@@ -633,7 +633,7 @@ webs to the function `tangle-text`. We will define that next:
       (spit (output-path chunk) (chunk-content chunk))
       (println (chunk-content chunk)))))
 
-(defn tangle-text 
+(defn tangle-string 
   "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
   [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
@@ -810,7 +810,7 @@ understanding is solid.
 
 (deftest tangle-edge-case-tests
  (let [circular-text "@@code a\n@@<b>\n@@end\n@@code b\n@@<a>\n@@end"
-       result (tangle-text circular-text [])]
+       result (tangle-string circular-text [])]
     (is (= nil result))))
 @end
 
@@ -836,7 +836,7 @@ print('Hello World')
 (deftest simple-tangle-test
  (let [simple-text (load-resource "simple.sw")]
   (is (= "print('Hello World')\n\n"
-         (with-out-str (tangle-text simple-text ["My Code"]))))))
+         (with-out-str (tangle-string simple-text ["My Code"]))))))
 @end
 
 This, of course, tells us little about the overall state of things. Next we
@@ -870,7 +870,7 @@ if true:
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
        (is (= "print('Hello World')\n  if true:\n  print(1 + 2)\n\n\n\n"
-         (with-out-str (tangle-text text ["Example"]))))))
+         (with-out-str (tangle-string text ["Example"]))))))
 @end
 
 @code Tangling Tests
@@ -918,7 +918,7 @@ Which we then verify:
 (deftest simple-concatenation-tests
  (let [text (load-resource "simple-concat.sw")]
      (is (= "1\n 2\n \n"
-         (with-out-str (tangle-text text ["Example"]))))))
+         (with-out-str (tangle-string text ["Example"]))))))
 @end
 
 ### Weaving
@@ -972,7 +972,7 @@ chunk and chunks 4-5 under another, so that if chunks are passed to the
 output sequence, we can dump those out alone.
 
 @code Weave Text
-(defn weave-text [text chunks]
+(defn weave-string [text chunks]
  (result (apply-parser web text))
  )
 @end
@@ -987,7 +987,7 @@ output sequence, we can dump those out alone.
   (doseq [f files]
      ; TODO: error handling
      (info "Weaving file " f)
-     (weave-text (slurp f) chunks))))
+     (weave-string (slurp f) chunks))))
 @end
 
 ## The Command Line Application ##

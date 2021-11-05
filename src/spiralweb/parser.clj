@@ -149,7 +149,7 @@
                :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
 
 (def doc-definition
-  (parser (then 
+  (parser (then
            doc-directive
            t-text
            (optional property-list)

@@ -13,18 +13,18 @@
 
 (deftest tangle-edge-case-tests
  (let [circular-text "@code a\n@<b>\n@end\n@code b\n@<a>\n@end"
-       result (tangle-text circular-text [])]
+       result (tangle-string circular-text [])]
     (is (= nil result))))
 (defn load-resource [name] (-> name io/resource slurp))
 
 (deftest simple-tangle-test
  (let [simple-text (load-resource "simple.sw")]
   (is (= "print('Hello World')\n\n"
-         (with-out-str (tangle-text simple-text ["My Code"]))))))
+         (with-out-str (tangle-string simple-text ["My Code"]))))))
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
        (is (= "print('Hello World')\n  if true:\n  print(1 + 2)\n\n\n\n"
-         (with-out-str (tangle-text text ["Example"]))))))
+         (with-out-str (tangle-string text ["Example"]))))))
 (deftest expand-refs-simple
  (let [chunk {:type :code 
               :name "Outer"
@@ -46,4 +46,4 @@
 (deftest simple-concatenation-tests
  (let [text (load-resource "simple-concat.sw")]
      (is (= "1\n 2\n \n"
-         (with-out-str (tangle-text text ["Example"]))))))
+         (with-out-str (tangle-string text ["Example"]))))))
