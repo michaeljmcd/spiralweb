@@ -1,4 +1,4 @@
-# SpiralWeb #
+# SpiralWeb
 
 SpiralWeb is a literate programming system (see [http://www.literateprogramming.com/index.html](http://www.literateprogramming.com/index.html)
 for more information) that uses lightweight text
@@ -17,6 +17,6 @@ file to the main source directory. To build an egg or install, use:
 
     python setup.py install
 
-## Dependencies ##
+## Dependencies
 
 SpiralWeb relies on PLY to handle its parsing.

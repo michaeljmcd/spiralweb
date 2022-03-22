@@ -26,30 +26,37 @@
 
 (def doc-directive
   (parser (literal "@doc")
+          :name "doc-directive"
           :using (fn [_] {:type :doc-directive :value "@doc"})))
 
 (def code-directive
   (parser (literal "@code")
+          :name "code-directive"
           :using (fn [_] {:type :code-directive :value "@code"})))
 
 (def at-directive
   (parser (literal "@@")
+          :name "at-directive"
           :using (fn [_] {:type :at-directive :value "@"})))
 
 (def comma
   (parser (match \,)
+          :name "comma"
           :using (fn [_] {:type :comma :value ","})))
 
 (def t-equals
   (parser (match \=)
+          :name "equals"
           :using (fn [_] {:type :equals :value "="})))
 
 (def open-proplist
   (parser (match \[)
+          :name "open-proplist"
           :using (fn [_] {:type :open-proplist :value "["})))
 
 (def close-proplist
   (parser (match \])
+          :name "close-proplist"
           :using (fn [_] {:type :close-proplist :value "]"})))
 
 (defn- code-end? [t] (= (:type t) :code-end))
@@ -76,6 +83,7 @@
     (plus (not-one-of [\> \newline]))
     (match \>)
     (star non-breaking-ws))
+   :name "Chunk Reference"
    :using
    (fn [x]
      (let [ref-text (apply str x)
@@ -90,6 +98,7 @@
            t-text 
            t-equals
            t-text)
+          :name "property"
           :using
           (fn [x]
             (let [scrubbed (filter (comp not nil?) x)]
@@ -97,15 +106,19 @@
               :value {:name (-> scrubbed first :value trim)
               :value (-> scrubbed (nth 2) :value trim)}}))))
 
-(def property-sequence (choice 
-                        (then comma property)
-                        property))
+(def property-sequence 
+ (parser
+  (choice 
+   (then comma property)
+   property)
+  :name "property-sequence"))
 
 (def property-list
   (parser (then open-proplist
            (star property-sequence)
            close-proplist
            (star non-breaking-ws))
+          :name "property-list"
           :using
           (fn [x]
             {:type :properties :value
@@ -122,7 +135,7 @@
            open-proplist
            close-proplist
            chunkref)
-   :name "Codeline"))
+   :name "Code Line"))
 
 (defn proplist->map [props]
   (apply hash-map
@@ -139,6 +152,7 @@
            (discard nl)
            (plus codeline)
            code-end)
+          :name "code-definition"
           :using
           (fn [x]
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
@@ -155,6 +169,7 @@
            (optional property-list)
            (discard nl)
            doclines)
+          :name "doc-definition"
           :using
           (fn [x]
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)

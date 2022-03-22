@@ -40,8 +40,6 @@
     (cond
       (empty? chunks)
         result
-      (not (is-code-chunk? chunk))
-        (recur result (rest chunks))
       (contains? result (:name chunk))
         (recur
          (append-chunk result chunk)
@@ -57,7 +55,7 @@
 
   {\"asdf\" : {\"def\": true, \"abc\": false }}
 
-  This map is not sparse. It will include some entry for each chunk in the original list."
+  This map is not sparse. It will include an entry for each chunk in the original list."
   [chunks]
   (letfn [(add-references [chunk result]
             (let [ref-lines (filter is-chunk-reference? (:lines chunk))
@@ -154,7 +152,6 @@
   "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
   [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
-   ;(info chunks)
     (output-code-chunks
      (cond
        (not (empty? output-chunks))
@@ -191,8 +188,12 @@
 
 
 (defn weave-string [text chunks]
- (pprint (apply-parser web text))
- )
+ (let [parse-tree (apply-parser web text)]
+  (pprint parse-tree)
+;(cond
+;   (empty? chunks)
+;    )
+  ))
 
 
 (defn weave

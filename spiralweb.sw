@@ -196,30 +196,37 @@ the grammar.
 
 (def doc-directive
   (parser (literal "@@doc")
+          :name "doc-directive"
           :using (fn [_] {:type :doc-directive :value "@@doc"})))
 
 (def code-directive
   (parser (literal "@@code")
+          :name "code-directive"
           :using (fn [_] {:type :code-directive :value "@@code"})))
 
 (def at-directive
   (parser (literal "@@@@")
+          :name "at-directive"
           :using (fn [_] {:type :at-directive :value "@@"})))
 
 (def comma
   (parser (match \,)
+          :name "comma"
           :using (fn [_] {:type :comma :value ","})))
 
 (def t-equals
   (parser (match \=)
+          :name "equals"
           :using (fn [_] {:type :equals :value "="})))
 
 (def open-proplist
   (parser (match \[)
+          :name "open-proplist"
           :using (fn [_] {:type :open-proplist :value "["})))
 
 (def close-proplist
   (parser (match \])
+          :name "close-proplist"
           :using (fn [_] {:type :close-proplist :value "]"})))
 @end
 
@@ -303,6 +310,7 @@ The definition starts with the explicit chunk definitions and then uses
            (discard nl)
            (plus codeline)
            code-end)
+          :name "code-definition"
           :using
           (fn [x]
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
@@ -323,6 +331,7 @@ Then the document definition will also seem pretty straightforward:
            (optional property-list)
            (discard nl)
            doclines)
+          :name "doc-definition"
           :using
           (fn [x]
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
@@ -343,6 +352,7 @@ list is just a series of name-value pairs surrounded by brackets.
            t-text 
            t-equals
            t-text)
+          :name "property"
           :using
           (fn [x]
             (let [scrubbed (filter (comp not nil?) x)]
@@ -350,15 +360,19 @@ list is just a series of name-value pairs surrounded by brackets.
               :value {:name (-> scrubbed first :value trim)
               :value (-> scrubbed (nth 2) :value trim)}}))))
 
-(def property-sequence (choice 
-                        (then comma property)
-                        property))
+(def property-sequence 
+ (parser
+  (choice 
+   (then comma property)
+   property)
+  :name "property-sequence"))
 
 (def property-list
   (parser (then open-proplist
            (star property-sequence)
            close-proplist
            (star non-breaking-ws))
+          :name "property-list"
           :using
           (fn [x]
             {:type :properties :value
@@ -379,7 +393,7 @@ The core content of a code chunk is obviously a series of lines of code.
            open-proplist
            close-proplist
            chunkref)
-   :name "Codeline"))
+   :name "Code Line"))
 @end
 
 Most of these options are simply unescaped bits of text. The one chunk that
@@ -395,6 +409,7 @@ between different code chunks.
     (plus (not-one-of [\> \newline]))
     (match \>)
     (star non-breaking-ws))
+   :name "Chunk Reference"
    :using
    (fn [x]
      (let [ref-text (apply str x)
@@ -638,7 +653,6 @@ webs to the function `tangle-string`. We will define that next:
   "Accepts an unparsed web as text and a list of chunks to be output. This function will parse the input text and use the standard method to output the chunks."
   [txt output-chunks]
   (let [chunks (refine-code-chunks txt)]
-   ;(info chunks)
     (output-code-chunks
      (cond
        (not (empty? output-chunks))
@@ -689,8 +703,6 @@ has the nice benefit of giving us a way to identify loops.
     (cond
       (empty? chunks)
         result
-      (not (is-code-chunk? chunk))
-        (recur result (rest chunks))
       (contains? result (:name chunk))
         (recur
          (append-chunk result chunk)
@@ -706,7 +718,7 @@ has the nice benefit of giving us a way to identify loops.
 
   {\"asdf\" : {\"def\": true, \"abc\": false }}
 
-  This map is not sparse. It will include some entry for each chunk in the original list."
+  This map is not sparse. It will include an entry for each chunk in the original list."
   [chunks]
   (letfn [(add-references [chunk result]
             (let [ref-lines (filter is-chunk-reference? (:lines chunk))
@@ -974,8 +986,12 @@ output sequence, we can dump those out alone.
 
 @code Weave Text
 (defn weave-string [text chunks]
- (pprint (apply-parser web text))
- )
+ (let [parse-tree (apply-parser web text)]
+  (pprint parse-tree)
+;(cond
+;   (empty? chunks)
+;    )
+  ))
 @end
 
 @code Weaving
@@ -1015,8 +1031,8 @@ have already assembled.
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
-                              [#{"edessa.parser"} :error]]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+                              [#{"edessa.parser"} :debug]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 
   (let [opts (parse-opts args cli-options)]
