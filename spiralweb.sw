@@ -1031,8 +1031,8 @@ have already assembled.
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
-                              [#{"edessa.parser"} :debug]]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
+                              [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 
   (let [opts (parse-opts args cli-options)]

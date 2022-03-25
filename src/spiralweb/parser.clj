@@ -153,14 +153,16 @@
            (plus codeline)
            code-end)
           :name "code-definition"
-          :using
+         :using
           (fn [x]
+            (debug "Formatting code definition with input " (pr-str (seq x)))
             (let [[_ n & lines :as all-tokens] (filter (comp not nil?) x)
                   props (flatten (map :value (filter prop-token? all-tokens)))]
               {:type :code
                :options (proplist->map props)
                :name (-> n :value trim)
-               :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))))
+               :lines (filter #(not (or (prop-token? %) (code-end? %))) lines)}))
+          ))
 
 (def doc-definition
   (parser (then
@@ -177,7 +179,8 @@
               {:type :doc
                :options (proplist->map props)
                :name (-> n :value trim)
-               :lines (filter #(not (prop-token? %)) lines)}))))
+               :lines (filter #(not (prop-token? %)) lines)}))
+          ))
 
 (def web (star 
           (choice 
