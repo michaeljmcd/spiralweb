@@ -288,7 +288,7 @@ Which leads us to the main rule for parsing a web.
           (choice 
            code-definition 
            doc-definition 
-           doclines)))
+           tl-doclines)))
 @end
 
 The definition starts with the explicit chunk definitions and then uses
@@ -436,6 +436,14 @@ This is largely because document lines are easy so we define it here.
    :name "Docline"))
 
 (def doclines (plus docline))
+
+(def tl-doclines 
+ (parser (plus docline)
+  :using (fn [x] 
+    (debug "tl-doclines: " (pr-str (seq x)))
+    {:type :doc
+    :options {}
+    :lines x})))
 @end
 
 Now, Clojure's loading encourages a bottom-up listing of functionality
