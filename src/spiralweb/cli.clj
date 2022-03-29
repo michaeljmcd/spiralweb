@@ -2,6 +2,7 @@
  (:gen-class)
  (:require [spiralweb.core :refer [tangle edn-web weave]]
            [clojure.tools.cli :refer [parse-opts]]
+           [clojure.string :refer [join]]
            [taoensso.timbre :as t :refer [merge-config!]]
            [clojure.pprint :refer [pprint]]))
 
@@ -11,7 +12,8 @@
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+                              [#{"spiralweb.parser"} :error]
                               [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 

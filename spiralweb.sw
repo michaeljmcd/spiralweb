@@ -547,6 +547,7 @@ individual functions simple, we will outline the module below.
 @code Core Module [out=src/spiralweb/core.clj]
 (ns spiralweb.core
  (:require [spiralweb.parser :refer [web]]
+           [clojure.string :refer [join]]
            [taoensso.timbre :refer [info debug]]
            [edessa.parser :refer [apply-parser failure? input-remaining? result]]
            [clojure.pprint :refer [pprint]]))
@@ -1039,13 +1040,59 @@ output sequence, we can dump those out alone.
 @end
 
 @code Weave Text
+(declare format-doc-chunk)
+(declare format-code-chunk)
+
+(defn format-code-chunk [chunk]
+ (debug "Code lines " 
+        (pr-str (flatten (seq (map format-doc-chunk (:lines chunk))))))
+ (let [leader "~~~~~~~~~~~~~~~~~"]
+   (str leader 
+        (format "{.numberLines %s}\n"
+         (if (contains? (:options chunk) "lang")
+          (str "." (-> chunk :options (get "lang")))
+          ""))
+        (join "" (flatten (seq (map format-doc-chunk (:lines chunk)))))
+        leader)
+))
+
+(defn format-doc-chunk* [chunk text-list]
+ (case (:type chunk)
+  :doc (conj (map format-doc-chunk (:lines chunk)) text-list)
+  :code (cons (format-code-chunk chunk) text-list)
+  (cons (:value chunk) text-list)))
+
+(defn format-doc-chunk [chunk]
+ (flatten (format-doc-chunk* chunk [])))
+
+(defn has-out? [chunk]
+ (contains? (:options chunk) "out"))
+
+(defn output-doc-chunk [chunk]
+  (let [chunk-text (join "" (format-doc-chunk chunk))]
+        (if (has-out? chunk)
+         (spit (-> chunk :options (get "out"))
+               chunk-text)
+         (print chunk-text))))
+
+(defn keys-with-out [chunks]
+ (filter 
+  (fn [x]
+   (has-out? (get chunks x)))
+  (keys chunks))
+)
+
 (defn weave-string [text chunks]
-  (let [doc-chunks (refine-documentation-chunks text)]
-  (pprint doc-chunks)
-    ;(cond
-    ;   (empty? chunks)
-    ;    )
-    ))
+  (let [doc-chunks (refine-documentation-chunks text)
+        to-output (cond 
+                    (not-empty chunks) chunks
+                    (not-empty (keys-with-out doc-chunks)) (keys-with-out doc-chunks)
+                    :else (keys doc-chunks))
+  ]
+  ;(pprint doc-chunks)
+  (doseq [name to-output]
+    (output-doc-chunk (get doc-chunks name)))
+  ))
 @end
 
 Similar to what we discussed previously, we wrap all this up in a new
@@ -1063,7 +1110,8 @@ intent is for this to be the entrypoint for the CLI application.
   (doseq [f files]
      ; TODO: error handling
      (info "Weaving file " f)
-     (weave-string (slurp f) chunks))))
+     (weave-string (slurp f) 
+                   chunks))))
 @end
 
 ## The Command Line Application ##
@@ -1081,6 +1129,7 @@ have already assembled.
  (:gen-class)
  (:require [spiralweb.core :refer [tangle edn-web weave]]
            [clojure.tools.cli :refer [parse-opts]]
+           [clojure.string :refer [join]]
            [taoensso.timbre :as t :refer [merge-config!]]
            [clojure.pprint :refer [pprint]]))
 
@@ -1091,6 +1140,7 @@ have already assembled.
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
   (merge-config! {:min-level [[#{"spiralweb.core"} :error]
+                              [#{"spiralweb.parser"} :error]
                               [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
 

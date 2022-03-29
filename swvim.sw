@@ -1,4 +1,4 @@
-@doc Vim Syntax File for SpiralWeb [out=swvim.md]
+@doc Vim Syntax File for SpiralWeb [out=doc/swvim.md]
 # Vim Syntax File for SpiralWeb 
 
 Even though, at this early date, the first version of SpiralWeb is not yet
