@@ -1003,11 +1003,12 @@ output sequence, we can dump those out alone.
   (doc? chunk)
    (cond
     (nil? last-doc)
+     (let [name (if (not-empty (:name chunk))
+               (:name chunk)
+               "*")]
       (recur (rest chunks)
-             (assoc result
-                    (:name chunk)
-                    chunk)
-             (:name chunk))
+             (assoc result name chunk)
+             name))
     (or (= (:name chunk) last-doc)
         (empty? (:name chunk)))
       (recur (rest chunks)
