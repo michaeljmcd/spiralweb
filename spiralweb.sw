@@ -1,7 +1,6 @@
 @doc SpiralWeb [out=doc/spiralweb.md]
 % SpiralWeb--A Literate Programming System
 % Michael McDermott
-% October 11, 2017
 
 # SpiralWeb--A Literate Programming System #
 
@@ -992,17 +991,68 @@ The end result should combine chunks 1-3 under a single documentation
 chunk and chunks 4-5 under another, so that if chunks are passed to the
 output sequence, we can dump those out alone.
 
-@code Weave Text
-(defn weave-string [text chunks]
+@code Resolve Documentation Chunks
+(defn doc? [chunk]
+ (= :doc (:type chunk)))
+
+(defn iter-refine-documentation-chunks [chunks result last-doc]
+ (let [chunk (first chunks)]
+ (cond
+  (empty? chunks)
+    result
+  (doc? chunk)
+   (cond
+    (nil? last-doc)
+      (recur (rest chunks)
+             (assoc result
+                    (:name chunk)
+                    chunk)
+             (:name chunk))
+    (or (= (:name chunk) last-doc)
+        (empty? (:name chunk)))
+      (recur (rest chunks)
+             (assoc-in result 
+                       [last-doc :lines]
+                       (conj (into [] (get-in result [last-doc :lines])) chunk))
+             last-doc)
+    :else
+      (recur (rest chunks)
+       (assoc result (:name chunk) chunk)
+       last-doc)
+   )
+  :else
+    (recur (rest chunks)
+           (assoc-in result [last-doc :lines]
+              (conj (into [] (get-in result [last-doc :lines])) chunk))
+           last-doc)
+ )
+))
+
+(defn refine-documentation-chunks [text]
  (let [parse-tree (apply-parser web text)]
-  (pprint parse-tree)
-;(cond
-;   (empty? chunks)
-;    )
-  ))
+  ;(pprint parse-tree)
+  ;(pprint (first (result parse-tree)))
+  (iter-refine-documentation-chunks (first (result parse-tree)) {} nil)
+ )
+)
 @end
 
+@code Weave Text
+(defn weave-string [text chunks]
+  (let [doc-chunks (refine-documentation-chunks text)]
+  (pprint doc-chunks)
+    ;(cond
+    ;   (empty? chunks)
+    ;    )
+    ))
+@end
+
+Similar to what we discussed previously, we wrap all this up in a new
+function `weave` that accepts a list of files and weaves all of them. The
+intent is for this to be the entrypoint for the CLI application.
+
 @code Weaving
+@<Resolve Documentation Chunks>
 @<Weave Text>
 
 (defn weave

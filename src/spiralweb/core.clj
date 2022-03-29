@@ -187,13 +187,57 @@
     (edn-web-inner {} paths)))
 
 
-(defn weave-string [text chunks]
+(defn doc? [chunk]
+ (= :doc (:type chunk)))
+
+(defn iter-refine-documentation-chunks [chunks result last-doc]
+ (let [chunk (first chunks)]
+ (cond
+  (empty? chunks)
+    result
+  (doc? chunk)
+   (cond
+    (nil? last-doc)
+      (recur (rest chunks)
+             (assoc result
+                    (:name chunk)
+                    chunk)
+             (:name chunk))
+    (or (= (:name chunk) last-doc)
+        (empty? (:name chunk)))
+      (recur (rest chunks)
+             (assoc-in result 
+                       [last-doc :lines]
+                       (conj (into [] (get-in result [last-doc :lines])) chunk))
+             last-doc)
+    :else
+      (recur (rest chunks)
+       (assoc result (:name chunk) chunk)
+       last-doc)
+   )
+  :else
+    (recur (rest chunks)
+           (assoc-in result [last-doc :lines]
+              (conj (into [] (get-in result [last-doc :lines])) chunk))
+           last-doc)
+ )
+))
+
+(defn refine-documentation-chunks [text]
  (let [parse-tree (apply-parser web text)]
-  (pprint parse-tree)
-;(cond
-;   (empty? chunks)
-;    )
-  ))
+  ;(pprint parse-tree)
+  ;(pprint (first (result parse-tree)))
+  (iter-refine-documentation-chunks (first (result parse-tree)) {} nil)
+ )
+)
+
+(defn weave-string [text chunks]
+  (let [doc-chunks (refine-documentation-chunks text)]
+  (pprint doc-chunks)
+    ;(cond
+    ;   (empty? chunks)
+    ;    )
+    ))
 
 
 (defn weave
