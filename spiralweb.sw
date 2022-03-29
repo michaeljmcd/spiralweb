@@ -2,13 +2,13 @@
 % SpiralWeb--A Literate Programming System
 % Michael McDermott
 
-# SpiralWeb--A Literate Programming System #
+# SpiralWeb--A Literate Programming System
 
 SpiralWeb was born out of a certain discontent with existing literate
 programming tools. Most notably, they are almost universally dependent on a
 TeX or LaTeX toolchain. From a historical point of view, this is
-understandable, as the birth of the two systems (TeX and Literate
-Programming) were tied, even for their creator.
+understandable, as the birth of TeX and Literate Programming was tied, even
+for their creator.
 
 However, I do not really care for composing in TeX for the same reason I
 do not care to compose in HTML (despite the fact that I could write HTML in
@@ -27,7 +27,7 @@ build.
 SpiralWeb, however, will integrate the functionality of the `cpif` script
 from noweb.
 
-## Usage ##
+## Usage
 
 SpiralWeb aims to be an LP system that is easier to use for a production
 system than most of the systems in existence. By default, SpiralWeb expects
@@ -130,7 +130,7 @@ help:
     option, the file must be written.
 @end
 
-## Parsing a Web ##
+## Parsing a Web
 
 We will be using a recursive descent parser implemented with a library for
 Clojure named Edessa^[edessaWebsite]. This means that we will use semantic
@@ -147,7 +147,7 @@ keys on them, like the following for the `@@doc` token:
 
 This will keep our representations fairly light and easy to work with.
 
-### Tokens ###
+### Tokens
 
 We can identify a list of tokens based on our earlier description of the
 SpiralWeb language.
@@ -269,7 +269,7 @@ below for completeness's sake.
   (is (failure? (apply-parser comma "33"))))
 @end
 
-### Grammar ###
+### Grammar
 
 A web is, at the end of the day, a web of chunks. This idea is easy to
 represent. Most of these rules require predicates to match tokens. We will
@@ -458,7 +458,7 @@ so we will restate our parsing rules accordingly.
 @<Web Rule>
 @end
 
-### Tests ###
+### Tests
 
 @code [out=test/spiralweb/parser_test.clj]
 (ns spiralweb.parser-test
@@ -521,7 +521,7 @@ so we will restate our parsing rules accordingly.
      (is (= exp (first (result act))))))
 @end
 
-### Conclusion ###
+### Conclusion
 
 In order to make all this code useful, we need to assemble it into a module
 to be used in our codebase.
@@ -557,7 +557,7 @@ individual functions simple, we will outline the module below.
 @<Weaving>
 @end
 
-### Chunk Utilities ###
+### Chunk Utilities
 
 These are used throughout the surrounding sections, so we will define them
 here.
@@ -1114,7 +1114,7 @@ intent is for this to be the entrypoint for the CLI application.
                    chunks))))
 @end
 
-## The Command Line Application ##
+## The Command Line Application
 
 In the previous sections, we defined the command-line syntax for the
 invocation of `spiralweb`. Here we take that specification and combine it
@@ -1156,7 +1156,7 @@ have already assembled.
 
 TODO
 
-## Conclusion ##
+## Conclusion
 
 As we wrap up, our main conclusions are to look forward to the sorts of
 advancements we would like to see in the next version:
@@ -1166,7 +1166,7 @@ advancements we would like to see in the next version:
   for web-wide and chunk-specific indexing.
 * Allow external webs to be included in a web.
 
-## References ##
+## References
 
 [^edessaWebsite]: (Edessa on Github)[https://github.com/michaeljmcd/edessa]
 
