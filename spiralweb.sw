@@ -141,9 +141,9 @@ assembles those into chunks off of which the remaining operations will be
 performed.
 
 Our representation for tokens will be simple maps with `:type` and `:value`
-keys on them, like the following for the `@doc` token:
+keys on them, like the following for the `@@doc` token:
 
-    {:type :doc-directive :value "@doc"}
+    {:type :doc-directive :value "@@doc"}
 
 This will keep our representations fairly light and easy to work with.
 

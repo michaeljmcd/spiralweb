@@ -12,7 +12,7 @@
 
 (defn -main "The main entrypoint for running SpiralWeb as a command line tool."
   [& args]
-  (merge-config! {:min-level [[#{"spiralweb.core"} :debug]
+  (merge-config! {:min-level [[#{"spiralweb.core"} :error]
                               [#{"spiralweb.parser"} :error]
                               [#{"edessa.parser"} :error]]
                   :appenders {:println (t/println-appender {:stream *err*})}})
