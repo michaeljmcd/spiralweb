@@ -10,11 +10,9 @@ TeX or LaTeX toolchain. From a historical point of view, this is
 understandable, as the birth of TeX and Literate Programming was tied, even
 for their creator.
 
-However, I do not really care for composing in TeX for the same reason I
-do not care to compose in HTML (despite the fact that I could write HTML in
-my sleep, largely thanks to an abundance of time doing web development):
-the markup is simply too distracting, requiring far too much thought to be
-put into markup and not enough into content.
+I do not really care for composing in TeX for the same reason I do not care
+to compose in HTML: the markup is distracting, directing thought away from
+content and into the markup.
 
 Another big itch that SpiralWeb aims to scratch, is making the build
 process simpler. With current tools (mostly, I am thinking of noweb here),
@@ -22,25 +20,21 @@ writing build scripts is annoying as it requires respecifying the entire
 web structure within the build to make it work. As a direct result, updates
 to program structures must be made in at least three places: the web
 itself, the tangling portion of the build, and the weaving portion of the
-build.
-
-SpiralWeb, however, will integrate the functionality of the `cpif` script
+build. SpiralWeb will integrate the functionality of the `cpif` script
 from noweb.
 
 ## Usage
 
 SpiralWeb aims to be an LP system that is easier to use for a production
 system than most of the systems in existence. By default, SpiralWeb expects
-a list of web files (we name them as `.sw` files, but any other extension
-can be used as well).
+a list of web files. We refer to them here as `.sw` files, but any other
+extension can be used as well.
 
 We will define our target usage succinctly, in the form of the man page for
 the executable `spiralweb`.
 
 @code Man Page [out=doc/spiralweb.1.md,lang=markdown]
 % SPIRALWEB(1) SpiralWeb User Manuals
-% Michael McDermott
-% October 11, 2017
 
 # NAME
 
@@ -57,12 +51,8 @@ markup (Markdown, with Pandoc extensions being the only option at the
 moment) as its default backend and provides simple, pain-free build
 integration to make building real-life systems easy.
 
-When invoked, SpiralWeb performs both tangling (the process of extracting
-source code from literate files) and weaving (the process of producing
-documentation from literate files) simultaneously.
-
-A literate file (or web, denoted by a .sw extension, by convention though
-not by necessity) is made up of the following directives:
+A literate file (or web, indicated by a .sw extension) is made up of the
+following directives:
 
 `@@doc (Name)? ([option=value,option2=value2...])?`
 
