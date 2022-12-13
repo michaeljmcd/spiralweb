@@ -505,9 +505,11 @@ so we will restate our parsing rules accordingly.
       :name "aaa",
       :options {"out" "foo.txt"},
       :type :code}
-     {:type :newline, :value "\n"}
-     {:type :text, :value "asdf"}
-     {:type :newline, :value "\n"}]
+     {:type :doc
+      :lines [{:type :newline, :value "\n"}
+              {:type :text, :value "asdf"}
+              {:type :newline, :value "\n"}]
+       :options {}}]
          act (apply-parser web cb)]
          (pprint (result act))
      (is (= exp (first (result act))))))
