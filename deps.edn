@@ -1,23 +1,23 @@
 {:paths   ["src"]
- :deps    {org.clojure/tools.cli {:mvn/version "1.0.206"}
-           com.taoensso/timbre {:mvn/version "5.1.2"}
+ :deps    {org.clojure/tools.cli {:mvn/version "1.0.214"}
+           com.taoensso/timbre {:mvn/version "6.0.4"}
            org.clojure/tools.trace {:mvn/version "0.7.11"}
            github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa"
-                                      :sha "b3a139cf6cd7667358b3d5f28ffed8ab099decb9"}}
+                                      :sha "5595fd270c6d5117501d5025782c3942f3f5cf01"}}
  :aliases  {:test     {:extra-paths ["test" "test-resources"]
-                       :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}}
+                       :extra-deps  {lambdaisland/kaocha {:mvn/version "1.71.1119"}}}
             :test/kaocha     {:extra-paths ["test" "test-resources"]
-                              :extra-deps  {lambdaisland/kaocha {:mvn/version "1.60.945"}}
+                              :extra-deps  {lambdaisland/kaocha {:mvn/version "1.71.1119"}}
                               :main-opts ["-m" "kaocha.runner"]}
             :test/kaocha-cloverage
             {:extra-paths ["test" "test-resources"]
-             :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.60.945"}
-                           lambdaisland/kaocha-cloverage {:mvn/version "1.0.75"}}
+             :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.71.1119"}
+                           lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}}
              :main-opts   ["-m" "kaocha.runner"]}
-            :outdated {:extra-deps {olical/depot {:mvn/version "2.3.0"}}
-                       :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}
-            :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.6.4"}}
+            :outdated {:extra-deps {com.github.liquidz/antq {:mvn/version "2.2.962"}}
+                     :main-opts ["-m" "antq.core"]}
+            :cljfmt {:extra-deps {cljfmt/cljfmt {:mvn/version "0.9.0"}}
                      :main-opts ["-m" "cljfmt.main"]}
-            :build {:deps {io.github.clojure/tools.build {:git/tag "v0.6.2" :git/sha "226fb52"}}
+            :build {:deps {io.github.clojure/tools.build {:git/tag "v0.8.5"}}
                     :ns-default build}
             :spiralweb {:main-opts ["-m" "spiralweb.cli"]}}}
