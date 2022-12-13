@@ -91,4 +91,4 @@
        :options {}}]
          act (apply-parser web cb)]
          (pprint (result act))
-     (is (= exp (first (result act))))))
+     (is (= exp (result act)))))

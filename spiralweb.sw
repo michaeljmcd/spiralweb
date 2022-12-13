@@ -512,7 +512,7 @@ so we will restate our parsing rules accordingly.
        :options {}}]
          act (apply-parser web cb)]
          (pprint (result act))
-     (is (= exp (first (result act))))))
+     (is (= exp (result act)))))
 @end
 
 ### Conclusion
@@ -680,7 +680,6 @@ same name (concatenating the contents) and expands out the references.
       nil
       (->> parse-tree
            result
-           first
            (filter is-code-chunk?)
            (combine-code-chunks {})
            expand-code-refs))))

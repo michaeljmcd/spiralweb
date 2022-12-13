@@ -136,7 +136,6 @@
       nil
       (->> parse-tree
            result
-           first
            (filter is-code-chunk?)
            (combine-code-chunks {})
            expand-code-refs))))
