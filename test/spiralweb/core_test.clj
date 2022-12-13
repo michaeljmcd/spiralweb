@@ -21,10 +21,12 @@
  (let [simple-text (load-resource "simple.sw")]
   (is (= "print('Hello World')\n\n"
          (with-out-str (tangle-string simple-text ["My Code"]))))))
+
 (deftest related-chunk-tangle-test
  (let [text (load-resource "simple-related.sw")]
        (is (= "print('Hello World')\n  if true:\n  print(1 + 2)\n\n\n\n"
          (with-out-str (tangle-string text ["Example"]))))))
+
 (deftest expand-refs-simple
  (let [chunk {:type :code 
               :name "Outer"

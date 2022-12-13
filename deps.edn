@@ -3,7 +3,9 @@
            com.taoensso/timbre {:mvn/version "6.0.4"}
            org.clojure/tools.trace {:mvn/version "0.7.11"}
            github-michaeljmcd/edessa {:git/url "https://github.com/michaeljmcd/edessa"
-                                      :sha "5595fd270c6d5117501d5025782c3942f3f5cf01"}}
+                                      :sha "b3a139cf6cd7667358b3d5f28ffed8ab099decb9"
+                                     ; :sha "5595fd270c6d5117501d5025782c3942f3f5cf01"
+                                      }}
  :aliases  {:test     {:extra-paths ["test" "test-resources"]
                        :extra-deps  {lambdaisland/kaocha {:mvn/version "1.71.1119"}}}
             :test/kaocha     {:extra-paths ["test" "test-resources"]

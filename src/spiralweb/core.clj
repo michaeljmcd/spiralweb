@@ -30,7 +30,7 @@
   (= :chunk-reference (:type c)))
 
 (defn- append-chunk [result chunk]
-  (letfn [(append-lines [x] (concat (:lines chunk) x))
+  (letfn [(append-lines [x] (concat x (:lines chunk)))
           (append-options [x] (merge (:options x) (:options chunk)))]
     (-> result
       (update-in [(:name chunk) :lines] append-lines)

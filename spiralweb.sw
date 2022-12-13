@@ -4,6 +4,8 @@
 
 # SpiralWeb--A Literate Programming System
 
+# ORIGINAL
+
 SpiralWeb was born out of a certain discontent with existing literate
 programming tools. Most notably, they are almost universally dependent on a
 TeX or LaTeX toolchain. From a historical point of view, this is
@@ -690,7 +692,7 @@ has the nice benefit of giving us a way to identify loops.
 
 @code Expand Code References
 (defn- append-chunk [result chunk]
-  (letfn [(append-lines [x] (concat (:lines chunk) x))
+  (letfn [(append-lines [x] (concat x (:lines chunk)))
           (append-options [x] (merge (:options x) (:options chunk)))]
     (-> result
       (update-in [(:name chunk) :lines] append-lines)
