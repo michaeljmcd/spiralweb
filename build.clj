@@ -31,5 +31,5 @@
   (b/process {:command-args ["clj" "-M:spiralweb" "tangle" "swvim.sw"]}))
 
 (defn html [_]
-  (b/process {:command-args ["pandoc" "doc/spiralweb.md" "-o" "doc/spiralweb.html" "--standalone"]})
-  (b/process {:command-args ["pandoc" "doc/swvim.md" "-o" "doc/swvim.html" "--standalone"]}))
+  (b/process {:command-args ["pandoc" "doc/spiralweb.md" "-o" "doc/spiralweb.html" "--standalone" "--toc"]})
+  (b/process {:command-args ["pandoc" "doc/swvim.md" "-o" "doc/swvim.html" "--standalone" "--toc"]}))
